@@ -28,7 +28,8 @@ The fine-tuned model undergoes extensive training using the prepared dataset. We
 ## Model Pusher:
 Once the model training and evaluation are complete, we implement a model pusher component that allows for easy deployment of the trained model to the web application.
 
-## Web Application Development: We have developed a FastAPI web service that serves as the backbone of our sentiment analysis application. The web app interacts with the sentiment analysis model and allows users to input Arabic text to obtain sentiment analysis results in real-time.
+## Web Application Development:
+We have developed a FastAPI web service that serves as the backbone of our sentiment analysis application. The web app interacts with the sentiment analysis model and allows users to input Arabic text to obtain sentiment analysis results in real-time.
 
 How to Use
 
