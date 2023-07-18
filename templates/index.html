@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sentiment Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f1f1f1;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        #sentimentForm {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        #textInput {
+            resize: none;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 8px;
+        }
+
+        #analyzeBtn {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        #analyzeBtn:hover {
+            background-color: #0056b3;
+        }
+
+        #resultContainer {
+            margin-top: 20px;
+            display: none;
+        }
+
+        #resultText {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        #sentimentOutput {
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>Sentiment Analysis</h1>
+        <form id="sentimentForm">
+            <label for="textInput">Enter text:</label>
+            <textarea id="textInput" name="text" rows="4" cols="50"></textarea>
+            <button type="submit" id="analyzeBtn">Analyze</button>
+        </form>
+        <div id="resultContainer">
+            <h3>Result:</h3>
+            <p id="resultText"></p>
+            <p id="sentimentOutput"></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("sentimentForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            var formData = new FormData(event.target);
+            
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                var resultContainer = document.getElementById("resultContainer");
+                var resultElement = document.getElementById("resultText");
+                var sentimentOutput = document.getElementById("sentimentOutput");
+                resultElement.textContent = data.text;
+                sentimentOutput.textContent = "Sentiment: " + data.sentiment;
+                resultContainer.style.display = "block";
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
