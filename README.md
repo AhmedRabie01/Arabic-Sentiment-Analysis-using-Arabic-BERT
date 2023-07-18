@@ -13,15 +13,20 @@ BERT, short for Bidirectional Encoder Representations from Transformers, is a gr
 Our primary goal with this project is to provide a comprehensive and reliable Arabic Sentiment Analysis tool. We aim to help researchers, developers, and businesses gain deeper insights into the sentiment of Arabic language content, leading to better decision-making and enhanced understanding of user sentiment.
 
 # Key Features
-## Data Ingestion from MongoDB: We have implemented data ingestion functionalities to fetch Arabic text data from MongoDB, making it easy to work with large datasets efficiently.
+## Data Ingestion from MongoDB:
+We have implemented data ingestion functionalities to fetch Arabic text data from MongoDB, making it easy to work with large datasets efficiently.
 
-## Data Validation and Transformation: Prior to model training, we perform data validation and transformation to ensure the dataset is clean, balanced, and suitable for training the sentiment analysis model.
+## Data Validation and Transformation: 
+Prior to model training, we perform data validation and transformation to ensure the dataset is clean, balanced, and suitable for training the sentiment analysis model.
 
-## Fine-tuned Arabic BERT Model: We fine-tuned the Arabic BERT model using a large dataset of labeled Arabic text for sentiment analysis. This ensures that the model can accurately capture the nuances of sentiment in Arabic language content.
+## Fine-tuned Arabic BERT Model: 
+We fine-tuned the Arabic BERT model using a large dataset of labeled Arabic text for sentiment analysis. This ensures that the model can accurately capture the nuances of sentiment in Arabic language content.
 
-## Model Training and Evaluation: The fine-tuned model undergoes extensive training using the prepared dataset. We evaluate the model's performance using various metrics to assess its accuracy and generalization capabilities.
+## Model Training and Evaluation:
+The fine-tuned model undergoes extensive training using the prepared dataset. We evaluate the model's performance using various metrics to assess its accuracy and generalization capabilities.
 
-## Model Pusher: Once the model training and evaluation are complete, we implement a model pusher component that allows for easy deployment of the trained model to the web application.
+## Model Pusher:
+Once the model training and evaluation are complete, we implement a model pusher component that allows for easy deployment of the trained model to the web application.
 
 ## Web Application Development: We have developed a FastAPI web service that serves as the backbone of our sentiment analysis application. The web app interacts with the sentiment analysis model and allows users to input Arabic text to obtain sentiment analysis results in real-time.
 
