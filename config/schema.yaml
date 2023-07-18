@@ -1,0 +1,13 @@
+columns:
+  
+  - tweet: string
+  - label: int
+    
+
+
+numerical_columns:
+  - label
+
+drop_columns:
+
+  
