@@ -69,6 +69,10 @@
         #sentimentOutput {
             font-size: 18px;
         }
+
+        #percentageOutput {
+            font-size: 18px;
+        }
     </style>
 </head>
 <body>
@@ -83,6 +87,7 @@
             <h3>Result:</h3>
             <p id="resultText"></p>
             <p id="sentimentOutput"></p>
+            <p id="percentageOutput"></p>
         </div>
     </div>
 
@@ -100,8 +105,12 @@
                 var resultContainer = document.getElementById("resultContainer");
                 var resultElement = document.getElementById("resultText");
                 var sentimentOutput = document.getElementById("sentimentOutput");
+                var percentageOutput = document.getElementById("percentageOutput");
+
                 resultElement.textContent = data.text;
                 sentimentOutput.textContent = "Sentiment: " + data.sentiment;
+                percentageOutput.textContent = "Percentage: " + data.percentage + "%";
+
                 resultContainer.style.display = "block";
             })
             .catch(error => {
