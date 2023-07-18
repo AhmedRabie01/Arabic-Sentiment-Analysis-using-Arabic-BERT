@@ -9,6 +9,11 @@ Sentiment analysis is a fascinating area of NLP that involves understanding and 
 The Power of Arabic BERT
 BERT, short for Bidirectional Encoder Representations from Transformers, is a groundbreaking NLP model that has revolutionized the field of natural language processing. Arabic BERT, specifically tailored for the Arabic language, builds upon this success by enabling us to efficiently comprehend and analyze Arabic text with exceptional accuracy.
 
+# project's screen shot
+![Alt Text](photo/2023-07-18 (2).png)
+
+![Alt Text](photo/2023-07-18 (3).png)
+
 # Project Goals
 Our primary goal with this project is to provide a comprehensive and reliable Arabic Sentiment Analysis tool. We aim to help researchers, developers, and businesses gain deeper insights into the sentiment of Arabic language content, leading to better decision-making and enhanced understanding of user sentiment.
 
