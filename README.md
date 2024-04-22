@@ -12,8 +12,6 @@ BERT, short for Bidirectional Encoder Representations from Transformers, is a gr
 # project's screen shot
 ![project web app](https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/2023-07-20%20(3).png)
 
-![project prediction](https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/2023-07-20%20(5).png)
-
 # Project Goals
 Our primary goal with this project is to provide a comprehensive and reliable Arabic Sentiment Analysis tool. We aim to help researchers, developers, and businesses gain deeper insights into the sentiment of Arabic language content, leading to better decision-making and enhanced understanding of user sentiment.
 
