@@ -1,4 +1,4 @@
-# Arabic Sentiment Analysis using Arabic BERT
+# Arabic Sentiment Analysis using ARBERT
 
 
 Welcome to the Arabic Sentiment Analysis project powered by Arabic BERT! This repository contains an end-to-end Natural Language Processing (NLP) project that focuses on analyzing sentiment in Arabic text. Leveraging the power of Arabic BERT, a state-of-the-art language model for the Arabic language, we have built a robust sentiment analysis system capable of understanding and classifying emotions within Arabic text.
