@@ -8,7 +8,9 @@ Sentiment analysis is a fascinating area of NLP that involves understanding and 
 
 
 # project's screenshot
-![project web app](https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/2023-07-20%20(3).png)
+![project web app](https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/Screenshot_12-12-2024_15730_127.0.0.1.jpeg)
+![project web app](https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/Screenshot_12-12-2024_15843_127.0.0.1.jpeg)
+
 
 
 # Features
