@@ -13,9 +13,9 @@ from Sentiment.constant.training_pipeline import MODEL_NAME
 from Sentiment.logger import logging
 import numpy as np
 
-class RobertaClassifier(nn.Module):
+class BertClassifier(nn.Module):
     def __init__(self, tokenizer=None, freeze_bert=False):
-        super(RobertaClassifier, self).__init__()
+        super(BertClassifier, self).__init__()
         self.tokenizer = tokenizer
         self.bert = AutoModel.from_pretrained(MODEL_NAME)
         D_in = self.bert.config.hidden_size
@@ -59,7 +59,7 @@ class ModelTrainer:
 
     def initialize_model(self, epochs, tokenizer):
         try:
-            roberta_classifier = RobertaClassifier(tokenizer=tokenizer)
+            roberta_classifier = BertClassifier(tokenizer=tokenizer)
             roberta_classifier.to(self.device)
 
             optimizer = AdamW(roberta_classifier.parameters(), lr=1e-5, no_deprecation_warning=True)

@@ -6,44 +6,66 @@ Welcome to the Arabic Sentiment Analysis project powered by AraBERT! This reposi
 # What is Sentiment Analysis?
 Sentiment analysis is a fascinating area of NLP that involves understanding and classifying the emotions expressed in a given text. It allows us to determine whether a piece of text conveys a positive, negative, or neutral sentiment, providing valuable insights into public opinion, customer feedback, and more.
 
-The Power of AraBERT  
-BERT, short for Bidirectional Encoder Representations from Transformers, is a groundbreaking NLP model that has revolutionized the field of natural language processing. AraBERT, specifically tailored for the Arabic language, builds upon this success by enabling us to efficiently comprehend and analyze Arabic text with exceptional accuracy.
 
 # project's screenshot
 ![project web app](https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/2023-07-20%20(3).png)
 
-# Project Goals
-Our primary goal with this project is to provide a comprehensive and reliable Arabic Sentiment Analysis tool. We aim to help researchers, developers, and businesses gain deeper insights into the sentiment of Arabic language content, leading to better decision-making and enhanced understanding of user sentiment.
 
-# Key Features
-## Data Ingestion from MongoDB:
+# Features
+- User-friendly web interface.
+- Analyze text reviews to determine sentiment.
+- Outputs sentiment classification (Positive/Negative) and confidence percentage.
+
+#  Project's Stages
+
+### Data Ingestion from MongoDB:
 We have implemented data ingestion functionalities to fetch Arabic text data from MongoDB, making it easy to work with large datasets efficiently.
 
-## Data Validation and Transformation: 
+### Data Validation and Transformation: 
 Prior to model training, we perform data validation and transformation to ensure the dataset is clean, balanced, and suitable for training the sentiment analysis model.
 
-## Fine-tuned AraBERT  Model: 
+### Fine-tuned AraBERT  Model: 
 We fine-tuned the ARBERT model using a large dataset of labeled Arabic text for sentiment analysis. This ensures that the model can accurately capture the nuances of sentiment in Arabic language content.
 
-## Model Training and Evaluation:
+### Model Training and Evaluation:
 The fine-tuned model undergoes extensive training using the prepared dataset. We evaluate the model's performance using various metrics to assess its accuracy and generalization capabilities.
 
-## Model Pusher:
+### Model Pusher:
 Once the model training and evaluation are complete, we implement a model pusher component that allows for easy deployment of the trained model to the web application.
 
-## Web Application Development:
+### Web Application Development:
 We have developed a FastAPI web service that serves as the backbone of our sentiment analysis application. The web app interacts with the sentiment analysis model and allows users to input Arabic text to obtain sentiment analysis results in real time.
 
-How to Use
+# Setup and Installation
+1) Clone the Repository
 
-Installation: Begin by cloning this repository to your local machine and installing the required dependencies mentioned in the requirements.txt file.
+```bash
+git clone https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT.git
 
-MongoDB Setup: Set up MongoDB and provide the necessary connection details in the configuration files to enable data ingestion.
+```
+2) Set Up Virtual Environment 
+```bash 
+conda create --name myenv -c conda-forge python=3.11
+```
+3) Activate your Environment 
+```bash
+Conda activate -name  of your Environment-
+``` 
+4. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
 
-Run the Web Application: Launch the FastAPI web service using the provided script, and access the sentiment analysis web application through your web browser.
+5. Start the Application
+```bash
+uvicorn main:app --reload
+```
+### Notes:
 
-Contributions and Issues
-We welcome contributions from the community! If you find any issues or have ideas to enhance this project, please open an issue on GitHub. We highly value your feedback and collaboration.
+- If you need to train the model you should set up MongoDB and provide the necessary connection details in the configuration files to enable data ingestion if you need to trian the model 
+
+### Contributions and Issues
+I welcome contributions from the community! 
 
 Let's unlock the power of Arabic BERT for sentiment analysis together! Happy analyzing! :rocket:
 
