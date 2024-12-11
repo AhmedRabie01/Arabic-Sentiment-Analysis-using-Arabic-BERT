@@ -1,53 +1,47 @@
 import os
+import sys
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, RandomSampler, TensorDataset
-from sklearn.metrics import accuracy_score
-from transformers import AutoModel, AdamW, get_linear_schedule_with_warmup
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from transformers import AutoModel, AutoTokenizer, AdamW, get_linear_schedule_with_warmup
 from Sentiment.entity.artifact_entity import ModelTrainerArtifact, DataTransformationArtifact
 from Sentiment.entity.config_entity import ModelTrainerConfig
 from Sentiment.exception import SentimentException
 from Sentiment.utils.main_utils import save_object, load_object
 from Sentiment.constant.training_pipeline import MODEL_NAME
-import numpy as np
 from Sentiment.logger import logging
-from numpy import ndarray
+import numpy as np
 
-
-class BertClassifier(nn.Module):
-    def __init__(self, tokenizer=None, freeze_aragpt=False):
-        super(BertClassifier, self).__init__()
-
-        D_in = 768  # Update the input dimension based on the aragpt-base model
-        H, D_out = 50, 2  # Update the intermediate layer size and output dimension as needed
+class RobertaClassifier(nn.Module):
+    def __init__(self, tokenizer=None, freeze_bert=False):
+        super(RobertaClassifier, self).__init__()
         self.tokenizer = tokenizer
         self.bert = AutoModel.from_pretrained(MODEL_NAME)
+        D_in = self.bert.config.hidden_size
+
+        # Classifier with residual connections
         self.classifier = nn.Sequential(
-            nn.Linear(D_in, H),
+            nn.Linear(D_in, 512),
             nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(H, D_out)
+            nn.Dropout(0.3),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(128, 2),  # Final output layer
         )
 
-        if freeze_aragpt:
+        if freeze_bert:
             for param in self.bert.parameters():
                 param.requires_grad = False
 
     def forward(self, input_ids, attention_mask):
-        if input_ids.size(0) == 0:
-            raise ValueError("Empty input_ids tensor")
-        if attention_mask.size(0) == 0:
-            raise ValueError("Empty attention_mask tensor")
-
-        # Feed input to BERT
         outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
-
-        # Extract the last hidden state of the token `[CLS]` for classification task
-        last_hidden_state_cls = outputs[0][:, 0, :]
-
-        # Feed input to classifier to compute logits
-        logits = self.classifier(last_hidden_state_cls)
-
+        cls_embedding = outputs.last_hidden_state[:, 0, :]
+        logits = self.classifier(cls_embedding)
         return logits
 
 
@@ -56,183 +50,120 @@ class ModelTrainer:
         try:
             self.model_trainer_config = model_trainer_config
             self.data_transformation_artifact = data_transformation_artifact
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         except Exception as e:
-            raise SentimentException(e)
+            raise SentimentException(e, sys)
 
     def criterion(self):
-        # Define the loss function
         return nn.CrossEntropyLoss()
 
     def initialize_model(self, epochs, tokenizer):
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        # Initialize the BertClassifier model
-        bert_classifier = BertClassifier(tokenizer=tokenizer)
-        # Tell PyTorch to run the model on GPU
-        bert_classifier.to(device)
+        try:
+            roberta_classifier = RobertaClassifier(tokenizer=tokenizer)
+            roberta_classifier.to(self.device)
 
-        print("Tokenizer's maximum sequence length:", tokenizer.model_max_length)
+            optimizer = AdamW(roberta_classifier.parameters(), lr=1e-5, no_deprecation_warning=True)
+            total_steps = epochs * len(self.data_transformation_artifact.transformed_train_file_path)
+            scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=total_steps)
 
-        # Create the optimizer
-        optimizer = AdamW(params=list(bert_classifier.parameters()),
-                          lr=5e-5,    # Default learning rate
-                          eps=1e-8    # Default epsilon value
-                          )
-        total_steps = len(self.data_transformation_artifact.transformed_train_file_path) * epochs
-        scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=total_steps)
-
-        return bert_classifier, optimizer, scheduler
+            return roberta_classifier, optimizer, scheduler
+        except Exception as e:
+            raise SentimentException("Error initializing the model", sys) from e
 
     def predict(self, model, dataloader):
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model.eval()
         predictions = []
 
         for batch in dataloader:
-            input_ids = batch[0].to(device)
-            attention_mask = batch[1].to(device)
+            input_ids = batch[0].to(self.device)
+            attention_mask = batch[1].to(self.device)
 
             with torch.no_grad():
                 logits = model(input_ids, attention_mask)
-                probabilities = torch.softmax(logits, dim=1)
-                predicted_labels = torch.argmax(probabilities, dim=1)
-                predictions.extend(predicted_labels.cpu().tolist())
+                probs = torch.softmax(logits, dim=1)
+                predictions.extend(torch.argmax(probs, dim=1).cpu().tolist())
 
         return predictions
 
-    def train_model(self, transformed_train_data: ndarray, transformed_train_attention_masks: ndarray,
-                    train_labels: ndarray, num_epochs=1, batch_size=16, validation_split=0.2):
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    def train_model(self, train_data, train_attention_masks, train_labels, num_epochs=10, batch_size=8, validation_split=0.2):
+        train_size = int(len(train_data) * (1 - validation_split))
+        val_size = len(train_data) - train_size
     
-        # Split the data into train and validation sets
-        train_size = int(len(transformed_train_data) * (1 - validation_split))
         train_dataset = TensorDataset(
-            torch.tensor(transformed_train_data[:train_size]),
-            torch.tensor(transformed_train_attention_masks[:train_size]),
-            torch.tensor(train_labels[:train_size])
+            train_data[:train_size], train_attention_masks[:train_size], train_labels[:train_size]
         )
         val_dataset = TensorDataset(
-            torch.tensor(transformed_train_data[train_size:]),
-            torch.tensor(transformed_train_attention_masks[train_size:]),
-            torch.tensor(train_labels[train_size:])
+            train_data[train_size:], train_attention_masks[train_size:], train_labels[train_size:]
         )
     
-        # Create train and validation DataLoaders
-        train_dataloader = DataLoader(
-            train_dataset,
-            sampler=RandomSampler(train_dataset),
-            batch_size=batch_size,
-            drop_last=False  # Set drop_last to False to keep the last incomplete batch
-        )
-        val_dataloader = DataLoader(
-            val_dataset,
-            sampler=RandomSampler(val_dataset),
-            batch_size=batch_size,
-            drop_last=False  # Set drop_last to False to keep the last incomplete batch
-        )
-        # Load the tokenizer object from the saved file
+        train_dataloader = DataLoader(train_dataset, sampler=RandomSampler(train_dataset), batch_size=batch_size)
+        val_dataloader = DataLoader(val_dataset, sampler=SequentialSampler(val_dataset), batch_size=batch_size)
+    
         tokenizer = load_object(self.data_transformation_artifact.tokenizer_file_path)
-
-        # Check the vocabulary size of the tokenizer
-        vocab_size = tokenizer.vocab_size
-        print("Vocabulary size:", vocab_size)
-
-        # Initialize the BertClassifier model, optimizer, and scheduler
-        bert_classifier, optimizer, scheduler = self.initialize_model(num_epochs, tokenizer)
-
-        # Training loop
+        model, optimizer, scheduler = self.initialize_model(num_epochs, tokenizer)
+        loss_fn = self.criterion()
+    
         for epoch in range(num_epochs):
-            # Set model to training mode
-            bert_classifier.train()
-            total_loss = 0
-
+            model.train()
+            total_loss, train_preds, train_actuals = 0, [], []
+    
             for batch in train_dataloader:
-                # Step 1: Retrieve input data and labels from the batch
-                input_ids = batch[0].to(device)
-                attention_mask = batch[1].to(device)
-                labels = batch[2].to(device)
-
-                # Check the range of values in the input_ids tensor
-                max_input_id = input_ids.max().item()
-                min_input_id = input_ids.min().item()
-                print("Max input ID:", max_input_id)
-                print("Min input ID:", min_input_id)
-
-                # Check if tokenizer and model use the same vocabulary
-                if vocab_size != tokenizer.vocab_size:
-                    raise ValueError("Mismatched vocabularies between tokenizer and model")
-
-
-                # Step 2: Zero the gradients
+                input_ids, attention_mask, labels = [b.to(self.device) for b in batch]
                 optimizer.zero_grad()
-
-                # Step 3: Forward pass
-                logits = bert_classifier(input_ids, attention_mask)
-
-                # Step 4: Compute the loss
-                loss = self.criterion()(logits, labels)
-
-                # Step 5: Backward pass
+    
+                logits = model(input_ids, attention_mask)
+                loss = loss_fn(logits, labels)
                 loss.backward()
-
-                # Step 6: Update model parameters
                 optimizer.step()
                 scheduler.step()
-
-                # Step 7: Accumulate loss value
+    
                 total_loss += loss.item()
+                train_preds.extend(torch.argmax(logits, dim=1).cpu().tolist())
+                train_actuals.extend(labels.cpu().tolist())
+    
+            train_accuracy = accuracy_score(train_actuals, train_preds)
+            train_f1 = f1_score(train_actuals, train_preds, average='weighted')
+    
+            # Validation phase
+            model.eval()
+            val_preds, val_actuals = [], []
+    
+            with torch.no_grad():
+                for batch in val_dataloader:
+                    input_ids, attention_mask, labels = [b.to(self.device) for b in batch]
+                    logits = model(input_ids, attention_mask)
+                    val_preds.extend(torch.argmax(logits, dim=1).cpu().tolist())
+                    val_actuals.extend(labels.cpu().tolist())
+    
+            val_accuracy = accuracy_score(val_actuals, val_preds)
+            val_f1 = f1_score(val_actuals, val_preds, average='weighted')
+    
+            print(f"Epoch {epoch + 1}/{num_epochs}, Train Loss: {total_loss/len(train_dataloader):.4f}, "
+                  f"Train Accuracy: {train_accuracy:.4f}, Val Accuracy: {val_accuracy:.4f}, "
+                  f"Train F1: {train_f1:.4f}, Val F1: {val_f1:.4f}")
+    
+        return model, train_preds, val_preds, {'accuracy': train_accuracy, 'f1': train_f1}, {'accuracy': val_accuracy, 'f1': val_f1}
 
-                print('finsh 1')
 
-            # Calculate average loss for the epoch
-            avg_loss = total_loss / len(train_dataloader)
-            print('finsh 1')
-
-            # Compute train accuracy as the train metric artifact
-            train_predictions = self.predict(bert_classifier, train_dataloader)
-            train_accuracy = accuracy_score(train_labels[:train_size], train_predictions)
-
-            # Compute validation accuracy as the validation metric artifact
-            val_predictions = self.predict(bert_classifier, val_dataloader)
-            val_accuracy = accuracy_score(train_labels[train_size:], val_predictions)
-
-            # Print progress
-            print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {avg_loss}, Train Accuracy: {train_accuracy}, Val Accuracy: {val_accuracy}")
-
-        return bert_classifier, train_accuracy, val_accuracy, train_predictions, val_predictions
-
-    def initiate_model_trainer(self) -> DataTransformationArtifact:
+    def initiate_model_trainer(self):
         try:
-            # Load the transformed train data, attention masks, and labels
-            transformed_train_data = np.load(self.data_transformation_artifact.transformed_train_file_path)
-            transformed_train_attention_masks = np.load(
-                self.data_transformation_artifact.transformed_train_attention_mask_path)
-            train_labels = np.load(self.data_transformation_artifact.transformed_train_labels_path)
+            train_data = torch.tensor(np.load(self.data_transformation_artifact.transformed_train_file_path)).to(self.device)
+            train_attention_masks = torch.tensor(np.load(self.data_transformation_artifact.transformed_train_attention_mask_path)).to(self.device)
+            train_labels = torch.tensor(np.load(self.data_transformation_artifact.transformed_train_labels_path)).to(self.device)
 
-            model, train_accuracy, val_accuracy, train_predictions, val_predictions = self.train_model(
-                transformed_train_data, transformed_train_attention_masks, train_labels
-            )
+            model, train_preds, val_preds, train_metrics, val_metrics = self.train_model(train_data, train_attention_masks, train_labels)
 
-            # Overfitting and Underfitting
-            diff = abs(train_accuracy - val_accuracy)
+            # Save the trained model
+            save_object(self.model_trainer_config.trained_model_file_path, model)
 
-            if diff > self.model_trainer_config.overfitting_underfitting_threshold:
-                raise Exception("Model is not good, try to do more experimentation.")
-
-            model_dir_path = os.path.dirname(self.model_trainer_config.trained_model_file_path)
-            os.makedirs(model_dir_path, exist_ok=True)
-            save_object(self.model_trainer_config.trained_model_file_path, obj=model)
-
-            # Create and return the model trainer artifact
-            model_trainer_artifact = ModelTrainerArtifact(
+            # Create the artifact
+            return ModelTrainerArtifact(
                 trained_model_file_path=self.model_trainer_config.trained_model_file_path,
-                train_metric_artifact=train_accuracy,  # Train accuracy as the train metric artifact
-                test_metric_artifact=val_accuracy,  # Validation accuracy as the validation metric artifact
-                train_predictions=train_predictions,
-                val_predictions=val_predictions
+                train_metric_artifact=train_metrics,
+                test_metric_artifact=val_metrics,
+                train_predictions=train_preds,
+                val_predictions=val_preds
             )
-
-            logging.info(f"Model trainer artifact: {model_trainer_artifact}")
-            return model_trainer_artifact
-
         except Exception as e:
-            raise SentimentException(e)
+            raise SentimentException(e, sys) from e
+

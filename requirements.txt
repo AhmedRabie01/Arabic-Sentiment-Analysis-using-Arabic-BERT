@@ -20,4 +20,6 @@ uvicorn==0.18.3
 Jinja2==3.1.2
 dill 
 arabert
+scikit-learn==1.5.2
+pymongo==4.10.1
 -e .

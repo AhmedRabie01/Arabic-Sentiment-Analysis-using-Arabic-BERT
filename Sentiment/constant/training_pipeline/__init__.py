@@ -3,7 +3,8 @@ import os
 
 SAVED_MODEL_DIR =os.path.join("saved_models")
 # defining common constant variable for training pipeline
-TARGET_COLUMN = "'label','tweet'"
+TARGET_COLUMN = "label"
+FEATURE_COLUMN = "review"
 PIPELINE_NAME: str = "Sentiment"
 ARTIFACT_DIR: str = "artifact"
 FILE_NAME: str = "Sentiment.csv"
@@ -20,11 +21,11 @@ SCHEMA_DROP_COLS = "drop_columns"
 """
 Data Ingestion related constant start with DATA_INGESTION VAR NAME
 """
-DATA_INGESTION_COLLECTION_NAME: str = "total_tweets"
+DATA_INGESTION_COLLECTION_NAME: str = "total_Reviews"
 DATA_INGESTION_DIR_NAME: str = "data_ingestion"
 DATA_INGESTION_FEATURE_STORE_DIR: str = "feature_store"
 DATA_INGESTION_INGESTED_DIR: str = "ingested"
-DATA_INGESTION_TRAIN_TEST_SPLIT_RATION: float = 0.2
+DATA_INGESTION_TRAIN_TEST_SPLIT_RATION: float = .2
 
 """
 Data Validation realted contant start with DATA_VALIDATION VAR NAME
@@ -50,8 +51,8 @@ BATCH_SIZE: int = 16
 """
 Model Trainer ralated constant start with MODE TRAINER VAR NAME
 """
-MODEL_NAME :str = 'asafaya/bert-base-arabic'
-MAX_LEN : int = 280    
+MODEL_NAME :str = 'aubmindlab/bert-base-arabertv2'
+MAX_LEN : int = 512      
 MODEL_TRAINER_DIR_NAME: str = "model_trainer"
 MODEL_TRAINER_TRAINED_MODEL_DIR: str = "trained_model"
 MODEL_TRAINER_TRAINED_MODEL_NAME: str = "model.pkl"

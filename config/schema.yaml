@@ -1,6 +1,6 @@
 columns:
   
-  - tweet: string
+  - review: string
   - label: int
     
 

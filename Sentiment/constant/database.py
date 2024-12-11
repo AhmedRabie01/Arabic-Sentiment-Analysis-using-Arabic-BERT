@@ -1,1 +1,1 @@
-DATABASE_NAME = 'twitter'
+DATABASE_NAME = 'Resturant'
