@@ -27,10 +27,8 @@ We have implemented data ingestion functionalities to fetch Arabic text data fro
 Prior to model training, we perform data validation and transformation to ensure the dataset is clean, balanced, and suitable for training the sentiment analysis model.
 
 ### Fine-tuned Model: 
-We fine-tuned the ARBERT model using a large dataset of labeled Arabic text for sentiment analysis. This ensures that the model can accurately capture the nuances of sentiment in Arabic language content.
-I experimented with traditional machine learning algorithms such as XGBoost and Random Forest. While XGBoost and Random Forest delivered validation accuracies around 68%, the fine-tuned Arabic Large Language model like bert untile  achieved an impressive 87.79% accuracy
-you can check that from :
-https://colab.research.google.com/drive/1c1SYzPf-VfnqhWGys6lc92F9UMgY4eVs?usp=sharing
+We fine-tuned the MARBERTv2 model using a large dataset of labeled Arabic text for sentiment analysis to accurately capture the linguistic nuances in Arabic. In addition, I evaluated other transformer-based models, including CAMeL-Lab/bert-base-arabic-camelbert-da-sentiment and AraBERT, along with traditional approaches such as XGBoost and Random Forest. While XGBoost and Random Forest achieved validation accuracies of around 68%, MARBERTv2 delivered an impressive 87.79% accuracy. For a detailed view of the experimental setup and results, please refer to the Colab notebook: 
+https://colab.research.google.com/drive/1c1SYzPf-VfnqhWGys6lc92F9UMgY4eVs?usp=sharing.
 
 ### Model Training and Evaluation:
 The fine-tuned model undergoes extensive training using the prepared dataset. We evaluate the model's performance using various metrics to assess its accuracy and generalization capabilities.
