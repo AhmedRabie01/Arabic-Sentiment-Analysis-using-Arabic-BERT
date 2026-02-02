@@ -1,143 +1,142 @@
+import os
+import sys
+import numpy as np
+import torch
+from torch.utils.data import DataLoader, SequentialSampler, TensorDataset
+from sklearn.metrics import accuracy_score, f1_score
+
+from Sentiment.entity.artifact_entity import (
+    ModelEvaluationArtifact,
+    ModelTrainerArtifact,
+    DataTransformationArtifact,
+)
+from Sentiment.entity.config_entity import ModelEvaluationConfig
 from Sentiment.exception import SentimentException
 from Sentiment.logger import logging
-from Sentiment.utils.main_utils import load_numpy_array_data
-from Sentiment.entity.artifact_entity import ModelTrainerArtifact,ModelEvaluationArtifact
-from Sentiment.entity.artifact_entity import DataTransformationArtifact
-from Sentiment.entity.config_entity import ModelEvaluationConfig
-from Sentiment.utils.main_utils import save_object,load_object,write_yaml_file
+from Sentiment.utils.main_utils import load_object, write_yaml_file
 from Sentiment.ml.model.estimator import ModelResolver
-from Sentiment.constant.training_pipeline import TARGET_COLUMN
-import torch.nn as nn
-import torch
-from torch.utils.data import DataLoader, RandomSampler, TensorDataset
-import os,sys 
-import pandas  as  pd
-import numpy as np
+
 
 class ModelEvaluation:
+    """
+    Multitask-aware Model Evaluation.
+    Focuses on:
+    - Macro F1 per task
+    - Class imbalance handling
+    - Composite decision score
+    """
 
-
-    def __init__(self,model_eval_config:ModelEvaluationConfig,
-                    data_transformation_artifact:DataTransformationArtifact,
-                    model_trainer_artifact:ModelTrainerArtifact):
-        
+    def __init__(
+        self,
+        model_eval_config: ModelEvaluationConfig,
+        data_transformation_artifact: DataTransformationArtifact,
+        model_trainer_artifact: ModelTrainerArtifact,
+    ):
         try:
-            
-            self.model_eval_config=model_eval_config
-            self.data_transformation_artifact=data_transformation_artifact
-            self.model_trainer_artifact=model_trainer_artifact
+            self.config = model_eval_config
+            self.transform_artifact = data_transformation_artifact
+            self.trainer_artifact = model_trainer_artifact
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         except Exception as e:
-            raise SentimentException(e,sys)
-    
+            raise SentimentException(e, sys)
 
+    def _load_test_data(self):
+        X_ids = torch.tensor(np.load(self.transform_artifact.X_test_ids_path)).to(self.device)
+        X_mask = torch.tensor(np.load(self.transform_artifact.X_test_mask_path)).to(self.device)
 
-    def replace_nan_with_value(self, arr):
-        """Replace NaN values in the array with a specified value."""
-        arr = np.nan_to_num(arr, nan=0)
-        return arr 
-    
+        y_sent = torch.tensor(np.load(self.transform_artifact.y_test_sentiment_path)).to(self.device)
+        y_int = torch.tensor(np.load(self.transform_artifact.y_test_intent_path)).to(self.device)
+        y_top = torch.tensor(np.load(self.transform_artifact.y_test_topic_path)).to(self.device)
 
-    def evaluate(self, model, transformed_test_data, transformed_test_attention_masks, test_labels, batch_size=32):
-        """Evaluate the model on test data and return loss and accuracy."""
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-        # Move test data to the correct device
-        test_dataset = TensorDataset(
-            torch.tensor(transformed_test_data).to(device),
-            torch.tensor(transformed_test_attention_masks).to(device),
-            torch.tensor(test_labels).to(device)
-        )
-    
-        val_dataloader = DataLoader(
-            test_dataset,
-            sampler=RandomSampler(test_dataset),
-            batch_size=batch_size
-        )
-    
-        loss_fn = torch.nn.CrossEntropyLoss()
-        model.to(device)  # Ensure model is on the correct device
+        ds = TensorDataset(X_ids, X_mask, y_sent, y_int, y_top)
+        return DataLoader(ds, sampler=SequentialSampler(ds), batch_size=32)
+
+    def _evaluate_model(self, model, dataloader):
         model.eval()
-    
-        val_accuracy = []
-        val_loss = []
-    
-        for batch in val_dataloader:
-            b_input_ids, b_attn_mask, b_labels = batch  # Already moved to device
-    
-            with torch.no_grad():
-                logits = model(b_input_ids, b_attn_mask)
-    
-            loss = loss_fn(logits, b_labels)
-            val_loss.append(loss.item())
-    
-            preds = torch.argmax(logits, dim=1).flatten()
-            accuracy = (preds == b_labels).cpu().numpy().mean() * 100
-            val_accuracy.append(accuracy)
-    
-        avg_loss = np.mean(val_loss)
-        avg_accuracy = np.mean(val_accuracy)
-        
-        return avg_loss, avg_accuracy
 
-    
+        sent_preds, int_preds, top_preds = [], [], []
+        sent_true, int_true, top_true = [], [], []
+
+        with torch.no_grad():
+            for batch in dataloader:
+                ids, mask, ys, yi, yt = batch
+                s_logits, i_logits, t_logits = model(ids, mask)
+
+                sent_preds.extend(torch.argmax(s_logits, dim=1).cpu().numpy())
+                int_preds.extend(torch.argmax(i_logits, dim=1).cpu().numpy())
+                top_preds.extend(torch.argmax(t_logits, dim=1).cpu().numpy())
+
+                sent_true.extend(ys.cpu().numpy())
+                int_true.extend(yi.cpu().numpy())
+                top_true.extend(yt.cpu().numpy())
+
+        metrics = {
+            "sentiment": {
+                "accuracy": accuracy_score(sent_true, sent_preds),
+                "macro_f1": f1_score(sent_true, sent_preds, average="macro"),
+            },
+            "intent": {
+                "accuracy": accuracy_score(int_true, int_preds),
+                "macro_f1": f1_score(int_true, int_preds, average="macro"),
+            },
+            "topic": {
+                "accuracy": accuracy_score(top_true, top_preds),
+                "macro_f1": f1_score(top_true, top_preds, average="macro"),
+            },
+        }
+
+        return metrics
+
+    def _composite_score(self, metrics: dict) -> float:
+        return (
+            0.3 * metrics["sentiment"]["macro_f1"]
+            + 0.3 * metrics["intent"]["macro_f1"]
+            + 0.4 * metrics["topic"]["macro_f1"]
+        )
+
     def initiate_model_evaluation(self) -> ModelEvaluationArtifact:
         try:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            logging.info("Starting Model Evaluation")
 
-            # Load the transformed test data and move it to the correct device
-            transformed_test_data = torch.tensor(np.load(self.data_transformation_artifact.transformed_test_file_path)).to(device)
-            transformed_test_attention_masks = torch.tensor(np.load(self.data_transformation_artifact.transformed_test_attention_mask_path)).to(device)
-            test_labels = torch.tensor(np.load(self.data_transformation_artifact.transformed_test_labels_path)).to(device)
+            dataloader = self._load_test_data()
 
-            # Get file paths for the trained and latest models
-            train_model_file_path = self.model_trainer_artifact.trained_model_file_path
-            model_resolver = ModelResolver()
-            is_model_accepted = True
+            new_model = load_object(self.trainer_artifact.trained_model_file_path).to(self.device)
+            new_metrics = self._evaluate_model(new_model, dataloader)
+            new_score = self._composite_score(new_metrics)
 
-            # Check if there's a previously saved model
-            if not model_resolver.is_model_exists():
-                model_evaluation_artifact = ModelEvaluationArtifact(
-                    is_model_accepted=is_model_accepted, 
-                    improved_accuracy=None, 
-                    best_model_path=None, 
-                    trained_model_path=train_model_file_path, 
-                    train_model_metric_artifact=self.model_trainer_artifact.test_metric_artifact, 
-                    best_model_metric_artifact=None
-                )
-                logging.info(f"Model evaluation artifact: {model_evaluation_artifact}")
-                return model_evaluation_artifact
+            resolver = ModelResolver()
+            is_accepted = True
+            best_score = None
+            best_model_path = None
 
-            latest_model_path = model_resolver.get_best_model_path()
-            latest_model = load_object(latest_model_path).to(device)  # Ensure model is on the correct device
-            train_model = load_object(train_model_file_path).to(device)
+            if resolver.is_model_exists():
+                best_model_path = resolver.get_best_model_path()
+                best_model = load_object(best_model_path).to(self.device)
+                best_metrics = self._evaluate_model(best_model, dataloader)
+                best_score = self._composite_score(best_metrics)
 
-            # Evaluate both the new model and the best existing model
-            val_loss_train_model, val_accuracy_train_model = self.evaluate(train_model, transformed_test_data, transformed_test_attention_masks, test_labels)
-            val_loss_latest_model, val_accuracy_latest_model = self.evaluate(latest_model, transformed_test_data, transformed_test_attention_masks, test_labels)
+                if new_score <= best_score + self.config.change_threshold:
+                    is_accepted = False
 
-            # Compare the models' performances
-            improved_accuracy = val_accuracy_train_model - val_accuracy_latest_model
-            if self.model_eval_config.change_threshold < improved_accuracy:
-                is_model_accepted = True
-                # Save the new model if it's better
-                save_object(latest_model_path, latest_model)
-            else:
-                is_model_accepted = False
+            report = {
+                "new_model_metrics": new_metrics,
+                "new_composite_score": new_score,
+                "best_composite_score": best_score,
+                "accepted": is_accepted,
+                "decision_rule": "Weighted macro-F1 (topic prioritized)",
+            }
 
-            model_evaluation_artifact = ModelEvaluationArtifact(
-                is_model_accepted=is_model_accepted,
-                improved_accuracy=improved_accuracy,
-                best_model_path=latest_model_path,
-                trained_model_path=train_model_file_path,
-                train_model_metric_artifact=val_accuracy_train_model,
-                best_model_metric_artifact=val_accuracy_latest_model
+            os.makedirs(os.path.dirname(self.config.report_file_path), exist_ok=True)
+            write_yaml_file(self.config.report_file_path, report)
+
+            return ModelEvaluationArtifact(
+                is_model_accepted=is_accepted,
+                improved_accuracy=new_score - best_score if best_score else None,
+                best_model_path=best_model_path,
+                trained_model_path=self.trainer_artifact.trained_model_file_path,
+                train_model_metric_artifact=new_metrics,
+                best_model_metric_artifact=None,
             )
-
-            # Log and save evaluation report
-            model_eval_report = model_evaluation_artifact.__dict__
-            write_yaml_file(self.model_eval_config.report_file_path, model_eval_report)
-            logging.info(f"Model evaluation artifact: {model_evaluation_artifact}")
-            return model_evaluation_artifact
 
         except Exception as e:
             raise SentimentException(e, sys)
