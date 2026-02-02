@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Batch Dashboard</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap");
+
+    :root {
+      --bg: #f8f3ea;
+      --ink: #1e2a2b;
+      --muted: #5c6b6f;
+      --card: #ffffff;
+      --brand: #0f8b8d;
+      --brand-2: #f59e0b;
+      --line: #e6ded3;
+      --shadow: 0 18px 50px rgba(25, 35, 36, 0.12);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", "Tajawal", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #e5f5f2 0%, transparent 60%),
+        radial-gradient(900px 700px at 110% 10%, #fff1d5 0%, transparent 60%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 42px 20px 80px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    h1 { margin: 0; font-size: clamp(26px, 4vw, 40px); }
+    .sub { color: var(--muted); margin: 6px 0 0; }
+
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--brand), #1fbaac);
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(15, 139, 141, 0.25);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    textarea, input[type="text"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-family: "Tajawal", "Space Grotesk", sans-serif;
+      font-size: 14px;
+      outline: none;
+      background: #fbfbfb;
+    }
+
+    textarea { height: 140px; resize: vertical; }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .muted { color: var(--muted); font-size: 13px; }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .summary .tile {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .dist {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .badge {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 13px;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid #f0ebe3;
+      vertical-align: top;
+    }
+
+    th { background: #faf6f0; font-weight: 600; }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <h1>Batch Analysis Dashboard</h1>
+        <p class="sub">Upload CSV or paste multiple lines for fast batch predictions.</p>
+      </div>
+      <button class="btn" onclick="location.href='/'">Back to Single</button>
+    </header>
+
+    <section class="grid">
+      <div class="card">
+        <h3>Batch (JSON)</h3>
+        <p class="muted">One text per line (Arabic or English).</p>
+        <textarea id="texts" placeholder="اكتب نصا في كل سطر..."></textarea>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" onclick="runBatch()">Analyze</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>CSV Upload</h3>
+        <p class="muted">Choose a CSV file and set the text column name.</p>
+        <input type="file" id="csvFile" accept=".csv" />
+        <div style="margin-top:10px;">
+          <label class="muted">Text column</label>
+          <input type="text" id="colName" value="text" />
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" onclick="runCsv()">Upload & Analyze</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:18px;">
+      <h3>Summary</h3>
+      <div class="summary">
+        <div class="tile">
+          <div class="muted">Total</div>
+          <div id="totalCount" style="font-size:22px; font-weight:600;">0</div>
+        </div>
+        <div class="tile">
+          <div class="muted">Most common sentiment</div>
+          <div id="topSentiment" style="font-size:18px; font-weight:600;">—</div>
+        </div>
+        <div class="tile">
+          <div class="muted">Intent spread</div>
+          <div id="intentSpread" style="font-size:18px; font-weight:600;">—</div>
+        </div>
+        <div class="tile">
+          <div class="muted">Topic spread</div>
+          <div id="topicSpread" style="font-size:18px; font-weight:600;">—</div>
+        </div>
+      </div>
+      <div class="dist" id="sentimentDist"></div>
+    </section>
+
+    <section class="card" style="margin-top:18px;">
+      <h3>Results</h3>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40%;">Text</th>
+            <th>Sentiment</th>
+            <th>Intent</th>
+            <th>Topic</th>
+            <th>Confidence</th>
+          </tr>
+        </thead>
+        <tbody id="resultsTable"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <script>
+    async function runBatch() {
+      const raw = document.getElementById("texts").value || "";
+      const texts = raw.split("\n").map(x => x.trim()).filter(Boolean);
+      if (!texts.length) return;
+      const res = await fetch("/predict/batch", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({texts})
+      });
+      const data = await res.json();
+      render(data.results || []);
+    }
+
+    async function runCsv() {
+      const fileInput = document.getElementById("csvFile");
+      if (!fileInput.files.length) return alert("Choose a CSV file");
+      const col = document.getElementById("colName").value || "text";
+
+      const fd = new FormData();
+      fd.append("file", fileInput.files[0]);
+
+      const res = await fetch(`/predict/batch/csv?text_column=${encodeURIComponent(col)}`, {
+        method: "POST",
+        body: fd
+      });
+      const data = await res.json();
+      render(data.results || []);
+    }
+
+    function summarize(results, key) {
+      const dist = {};
+      results.forEach(r => {
+        const v = r[key] || "unknown";
+        dist[v] = (dist[v] || 0) + 1;
+      });
+      const total = results.length || 1;
+      const entries = Object.entries(dist).sort((a, b) => b[1] - a[1]);
+      return { dist, entries, total };
+    }
+
+    function render(results) {
+      const total = results.length;
+      document.getElementById("totalCount").textContent = total;
+
+      const s = summarize(results, "sentiment");
+      const i = summarize(results, "intent");
+      const t = summarize(results, "topic");
+
+      document.getElementById("topSentiment").textContent = s.entries[0]?.[0] || "—";
+      document.getElementById("intentSpread").textContent = `${i.entries.length} intents`;
+      document.getElementById("topicSpread").textContent = `${t.entries.length} topics`;
+
+      const dist = document.getElementById("sentimentDist");
+      dist.innerHTML = "";
+      s.entries.forEach(([label, count]) => {
+        const pct = ((count / (total || 1)) * 100).toFixed(1);
+        const el = document.createElement("div");
+        el.className = "badge";
+        el.textContent = `${label}: ${count} (${pct}%)`;
+        dist.appendChild(el);
+      });
+
+      const tbody = document.getElementById("resultsTable");
+      tbody.innerHTML = "";
+      results.forEach(r => {
+        const tr = document.createElement("tr");
+        const conf = r.confidence || {};
+        tr.innerHTML = `
+          <td>${escapeHtml(r.text)}</td>
+          <td>${escapeHtml(r.sentiment)}</td>
+          <td>${escapeHtml(r.intent)}</td>
+          <td>${escapeHtml(r.topic)}</td>
+          <td>S:${fmt(conf.sentiment)}% I:${fmt(conf.intent)}% T:${fmt(conf.topic)}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function fmt(v) {
+      const n = Number(v) || 0;
+      return n.toFixed(1);
+    }
+
+    function escapeHtml(s) {
+      return String(s || "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;");
+    }
+  </script>
+</body>
+</html>
