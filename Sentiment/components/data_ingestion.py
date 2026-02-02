@@ -1,98 +1,94 @@
-from Sentiment.entity.artifact_entity import DataIngestionArtifact
-from Sentiment.entity.config_entity import DataIngestionConfig
-from Sentiment.exception import SentimentException
-from Sentiment.entity.config_entity import TrainingPipelineConfig
-from Sentiment.logger import logging
-import sys,os
+import os
+import sys
+import pandas as pd
 from pandas import DataFrame
 from sklearn.model_selection import train_test_split
+
 from Sentiment.data_access.twitter_data import TwitterData
+from Sentiment.entity.config_entity import DataIngestionConfig
+from Sentiment.entity.artifact_entity import DataIngestionArtifact
+from Sentiment.exception import SentimentException
+from Sentiment.logger import logging
 from Sentiment.utils.main_utils import read_yaml_file
 from Sentiment.constant.training_pipeline import SCHEMA_FILE_PATH
-from Sentiment.entity.config_entity import TrainingPipelineConfig
-from Sentiment.constant.training_pipeline import DATA_INGESTION_TRAIN_TEST_SPLIT_RATION
 
-class DataIngestion: 
 
-    def __init__(self, data_ingestion_config:DataIngestionConfig):
-
+class DataIngestion:
+    def __init__(self, data_ingestion_config: DataIngestionConfig):
         try:
-             self.data_ingestion_config=data_ingestion_config
-             self._schema_config = read_yaml_file(SCHEMA_FILE_PATH)
-
+            self.config = data_ingestion_config
+            self.schema = read_yaml_file(SCHEMA_FILE_PATH)
         except Exception as e:
-            raise SentimentException(e,sys)
-
-
-    def export_data_into_feature_store(self) -> DataFrame:
-
-        """
-         Export mongo db colllection record as data frame into feature
-        """
-        
-        try:
-             logging.info("export data from mongo db to feature store")
-             sensor_data = TwitterData()
-             data_frame = sensor_data.export_collection_as_dataframe(collection_name=self.data_ingestion_config.collection_name)
-             feature_store_file_path = self.data_ingestion_config.feature_store_file_path
-             
-
-             # create floder
-
-             dir_path = os.path.dirname(feature_store_file_path)
-             os.makedirs(dir_path,exist_ok = True)
-
-             data_frame.to_csv(feature_store_file_path,index=False,header=True)
-             return data_frame  
-        except Exception as e:
-            raise SentimentException(e,sys)
-
-    def split_data_as_train_test(self, dataframe: DataFrame) -> None:
-        """
-        Feature store dataset will be split into train and test file
-        """
-        try:
-            train_set, test_set = train_test_split(
-                dataframe, test_size=self.data_ingestion_config.train_test_split_ratio
-            )
-    
-            logging.info("Performed train test split on the dataframe")
-            logging.info("Exited split_data_as_train_test method of Data_Ingestion class")
-    
-            dir_path = os.path.dirname(self.data_ingestion_config.training_file_path)
-            os.makedirs(dir_path, exist_ok=True)
-    
-            logging.info(f"Exporting train and test file path.")
-    
-            train_set.to_csv(
-                self.data_ingestion_config.training_file_path, index=False, header=True
-            )
-    
-            test_set.to_csv(
-                self.data_ingestion_config.testing_file_path, index=False, header=True
-            )
-    
-            logging.info(f"Exported train and test file path.")
-            
-        except Exception as e:
-            # Raise SentimentException with the error message and sys module for traceback details
             raise SentimentException(e, sys)
 
+    def _flatten_labels(self, df: DataFrame) -> DataFrame:
+        """
+        Flatten MongoDB nested label structure:
+        labels.sentiment -> sentiment
+        labels.intent -> intent
+        labels.topic -> topic
+        """
+        if "labels" in df.columns:
+            labels_df = pd.json_normalize(df["labels"])
+            df = pd.concat([df.drop(columns=["labels"]), labels_df], axis=1)
+        return df
 
+    def export_data_into_feature_store(self) -> DataFrame:
+        try:
+            logging.info("Exporting data from MongoDB")
 
+            mongo_data = TwitterData()
+            df = mongo_data.export_collection_as_dataframe(
+                collection_name=self.config.collection_name
+            )
 
+            df = self._flatten_labels(df)
+
+            # Enforce schema columns
+            required_columns = self.schema["columns"]
+            missing_cols = set(required_columns) - set(df.columns)
+            if missing_cols:
+                raise Exception(f"Missing required columns: {missing_cols}")
+
+            df = df[required_columns]
+
+            # Save feature store
+            os.makedirs(os.path.dirname(self.config.feature_store_file_path), exist_ok=True)
+            df.to_csv(self.config.feature_store_file_path, index=False)
+
+            logging.info("Feature store created successfully")
+            return df
+
+        except Exception as e:
+            raise SentimentException(e, sys)
+
+    def split_data_as_train_test(self, dataframe: DataFrame):
+        try:
+            train_df, test_df = train_test_split(
+                dataframe,
+                test_size=self.config.train_test_split_ratio,
+                stratify=dataframe["topic"],
+                random_state=42,
+            )
+
+            os.makedirs(os.path.dirname(self.config.training_file_path), exist_ok=True)
+
+            train_df.to_csv(self.config.training_file_path, index=False)
+            test_df.to_csv(self.config.testing_file_path, index=False)
+
+            logging.info("Stratified train/test split completed")
+
+        except Exception as e:
+            raise SentimentException(e, sys)
     def initiate_data_ingestion(self) -> DataIngestionArtifact:
         try:
-            dataframe = self.export_data_into_feature_store()
-            # dataframe = dataframe.drop(self._schema_config["drop_columns"],axis=1)
-            self.split_data_as_train_test(dataframe=dataframe)
-            data_ingestion_artifact = DataIngestionArtifact(trained_file_path=self.data_ingestion_config.training_file_path,
-            test_file_path=self.data_ingestion_config.testing_file_path)
-            return data_ingestion_artifact
+            df = self.export_data_into_feature_store()
+            self.split_data_as_train_test(df)
+
+            return DataIngestionArtifact(
+                trained_file_path=self.config.training_file_path,
+                test_file_path=self.config.testing_file_path,
+            )
+
         except Exception as e:
-            raise SentimentException(e,sys)
-
-    
-
-
-
+            raise SentimentException(e, sys)
