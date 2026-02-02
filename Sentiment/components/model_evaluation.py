@@ -13,8 +13,10 @@ from Sentiment.entity.artifact_entity import (
 from Sentiment.entity.config_entity import ModelEvaluationConfig
 from Sentiment.exception import SentimentException
 from Sentiment.logger import logging
-from Sentiment.utils.main_utils import load_object, write_yaml_file
+from Sentiment.utils.main_utils import write_yaml_file
 from Sentiment.ml.model.estimator import ModelResolver
+from Sentiment.ml.model.multitask_bert import MultiTaskBert
+from Sentiment.constant.training_pipeline import MODEL_NAME
 
 
 class ModelEvaluation:
@@ -47,6 +49,10 @@ class ModelEvaluation:
         y_sent = torch.tensor(np.load(self.transform_artifact.y_test_sentiment_path)).to(self.device)
         y_int = torch.tensor(np.load(self.transform_artifact.y_test_intent_path)).to(self.device)
         y_top = torch.tensor(np.load(self.transform_artifact.y_test_topic_path)).to(self.device)
+
+        self.n_sentiment = int(torch.max(y_sent).item()) + 1
+        self.n_intent = int(torch.max(y_int).item()) + 1
+        self.n_topic = int(torch.max(y_top).item()) + 1
 
         ds = TensorDataset(X_ids, X_mask, y_sent, y_int, y_top)
         return DataLoader(ds, sampler=SequentialSampler(ds), batch_size=32)
@@ -94,13 +100,25 @@ class ModelEvaluation:
             + 0.4 * metrics["topic"]["macro_f1"]
         )
 
+    def _load_model(self, state_dict_path: str):
+        model = MultiTaskBert(
+            MODEL_NAME,
+            self.n_sentiment,
+            self.n_intent,
+            self.n_topic,
+        ).to(self.device)
+        state_dict = torch.load(state_dict_path, map_location=self.device)
+        model.load_state_dict(state_dict, strict=False)
+        model.eval()
+        return model
+
     def initiate_model_evaluation(self) -> ModelEvaluationArtifact:
         try:
             logging.info("Starting Model Evaluation")
 
             dataloader = self._load_test_data()
 
-            new_model = load_object(self.trainer_artifact.trained_model_file_path).to(self.device)
+            new_model = self._load_model(self.trainer_artifact.trained_model_file_path)
             new_metrics = self._evaluate_model(new_model, dataloader)
             new_score = self._composite_score(new_metrics)
 
@@ -110,8 +128,8 @@ class ModelEvaluation:
             best_model_path = None
 
             if resolver.is_model_exists():
-                best_model_path = resolver.get_best_model_path()
-                best_model = load_object(best_model_path).to(self.device)
+                best_model_path = resolver.get_model_path()
+                best_model = self._load_model(best_model_path)
                 best_metrics = self._evaluate_model(best_model, dataloader)
                 best_score = self._composite_score(best_metrics)
 

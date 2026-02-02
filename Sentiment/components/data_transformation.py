@@ -13,8 +13,8 @@ from Sentiment.entity.artifact_entity import (
 from Sentiment.entity.config_entity import DataTransformationConfig
 from Sentiment.exception import SentimentException
 from Sentiment.logger import logging
-from Sentiment.utils.main_utils import save_numpy_array_data, save_object
-from Sentiment.constant.training_pipeline import SCHEMA_FILE_PATH
+from Sentiment.utils.main_utils import save_numpy_array_data
+from Sentiment.constant.training_pipeline import SCHEMA_FILE_PATH, META_FILE_PATH, MODEL_NAME, MAX_LEN
 from Sentiment.utils.main_utils import read_yaml_file
 
 
@@ -35,9 +35,10 @@ class DataTransformation:
             self.validation_artifact = data_validation_artifact
             self.config = data_transformation_config
             self.schema = read_yaml_file(SCHEMA_FILE_PATH)
+            self.meta = read_yaml_file(META_FILE_PATH)
 
             self.tokenizer = AutoTokenizer.from_pretrained(
-                "jhu-clsp/mmBERT-base",
+                MODEL_NAME,
                 use_fast=True,
             )
 
@@ -53,22 +54,23 @@ class DataTransformation:
             texts,
             padding="max_length",
             truncation=True,
-            max_length=512,
+            max_length=MAX_LEN,
             return_attention_mask=True,
             return_tensors="np",
         )
         return encoded["input_ids"], encoded["attention_mask"]
 
     @staticmethod
-    def _encode_labels(series: pd.Series):
-        """
-        Encode categorical labels to integer indices.
-        Mapping is derived from sorted unique values.
-        """
-        classes = sorted(series.unique())
-        mapping = {label: idx for idx, label in enumerate(classes)}
-        encoded = series.map(mapping).values
-        return encoded, mapping
+    def _invert_label_map(label_map: dict) -> dict:
+        return {v: int(k) for k, v in label_map.items()}
+
+    def _encode_labels_from_meta(self, series: pd.Series, task: str):
+        labels = self.meta["tasks"][task]["labels"]
+        inv_map = self._invert_label_map(labels)
+        encoded = series.map(inv_map).values
+        if np.isnan(encoded).any():
+            raise Exception(f"Unknown label values found for task '{task}'")
+        return encoded.astype(int), inv_map
 
     def initiate_data_transformation(self) -> DataTransformationArtifact:
         try:
@@ -88,9 +90,9 @@ class DataTransformation:
             # -------------------------
             # Encode labels (separately)
             # -------------------------
-            y_train_sentiment, sentiment_map = self._encode_labels(train_df["sentiment"])
-            y_train_intent, intent_map = self._encode_labels(train_df["intent"])
-            y_train_topic, topic_map = self._encode_labels(train_df["topic"])
+            y_train_sentiment, sentiment_map = self._encode_labels_from_meta(train_df["sentiment"], "sentiment")
+            y_train_intent, intent_map = self._encode_labels_from_meta(train_df["intent"], "intent")
+            y_train_topic, topic_map = self._encode_labels_from_meta(train_df["topic"], "topic")
 
             y_test_sentiment = test_df["sentiment"].map(sentiment_map).values
             y_test_intent = test_df["intent"].map(intent_map).values
@@ -101,7 +103,8 @@ class DataTransformation:
             # -------------------------
             os.makedirs(self.config.transformed_data_dir, exist_ok=True)
 
-            save_object(self.config.tokenizer_file_path, self.tokenizer)
+            os.makedirs(self.config.tokenizer_file_path, exist_ok=True)
+            self.tokenizer.save_pretrained(self.config.tokenizer_file_path)
 
             save_numpy_array_data(self.config.X_train_ids_path, X_train_ids)
             save_numpy_array_data(self.config.X_train_mask_path, X_train_mask)

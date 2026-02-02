@@ -17,8 +17,8 @@ class ModelPusher:
     FINAL DEPLOYMENT STAGE (CRITICAL)
 
     Copies ONLY:
-      - model.pkl
-      - tokenizer.pkl
+      - model.pt
+      - tokenizer/ (HF folder)
       - meta.yaml
 
     Into:
@@ -71,20 +71,22 @@ class ModelPusher:
 
             # Copy model
             shutil.copyfile(trained_model_path, self.config.saved_model_file_path)
-            logging.info(f"Model deployed → {self.config.saved_model_file_path}")
+            logging.info(f"Model deployed -> {self.config.saved_model_file_path}")
 
-            # Copy tokenizer
-            shutil.copyfile(tokenizer_src, self.config.saved_tokenizer_file_path)
-            logging.info(f"Tokenizer deployed → {self.config.saved_tokenizer_file_path}")
+            # Copy tokenizer folder
+            if os.path.isdir(self.config.saved_tokenizer_dir):
+                shutil.rmtree(self.config.saved_tokenizer_dir)
+            shutil.copytree(tokenizer_src, self.config.saved_tokenizer_dir)
+            logging.info(f"Tokenizer deployed -> {self.config.saved_tokenizer_dir}")
 
             # Copy meta.yaml
             shutil.copyfile(meta_src, self.config.saved_meta_file_path)
-            logging.info(f"Meta deployed → {self.config.saved_meta_file_path}")
+            logging.info(f"Meta deployed -> {self.config.saved_meta_file_path}")
 
             return ModelPusherArtifact(
                 saved_model_dir=self.config.saved_model_dir,
                 model_file_path=self.config.saved_model_file_path,
-                tokenizer_file_path=self.config.saved_tokenizer_file_path,
+                tokenizer_file_path=self.config.saved_tokenizer_dir,
                 meta_file_path=self.config.saved_meta_file_path,
             )
 

@@ -16,6 +16,7 @@ TEST_FILE_NAME: str = "test.csv"
 # SCHEMA
 # =====================================================
 SCHEMA_FILE_PATH = os.path.join("config", "schema.yaml")
+META_FILE_PATH = os.path.join("config", "meta.yaml")
 
 # =====================================================
 # DATA INGESTION
@@ -48,7 +49,7 @@ MODEL_NAME: str = "jhu-clsp/mmBERT-base"
 MAX_LEN: int = 512
 
 MODEL_TRAINER_DIR_NAME: str = "model_trainer"
-MODEL_TRAINER_TRAINED_MODEL_NAME: str = "model.pkl"
+MODEL_TRAINER_TRAINED_MODEL_NAME: str = "model.pt"
 
 # =====================================================
 # MODEL EVALUATION

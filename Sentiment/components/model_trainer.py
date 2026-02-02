@@ -12,6 +12,7 @@ from Sentiment.logger import logging
 from Sentiment.entity.artifact_entity import ModelTrainerArtifact
 from Sentiment.entity.config_entity import ModelTrainerConfig
 from Sentiment.ml.model.multitask_bert import MultiTaskBert
+from Sentiment.constant.training_pipeline import MODEL_NAME, BATCH_SIZE
 
 
 class ModelTrainer:
@@ -20,10 +21,10 @@ class ModelTrainer:
         self.artifact = data_transformation_artifact
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.model_name = "jhu-clsp/mmBERT-base"
-        self.n_sentiment = 3
-        self.n_intent = 3
-        self.n_topic = 7
+        self.model_name = MODEL_NAME
+        self.n_sentiment = None
+        self.n_intent = None
+        self.n_topic = None
 
     def _load(self, path):
         return torch.tensor(np.load(path), dtype=torch.long)
@@ -35,6 +36,10 @@ class ModelTrainer:
         y_i = self._load(self.artifact.y_train_intent_path)
         y_t = self._load(self.artifact.y_train_topic_path)
 
+        self.n_sentiment = int(torch.max(y_s).item()) + 1
+        self.n_intent = int(torch.max(y_i).item()) + 1
+        self.n_topic = int(torch.max(y_t).item()) + 1
+
         split = int(0.8 * len(X_ids))
 
         train_ds = TensorDataset(
@@ -45,8 +50,8 @@ class ModelTrainer:
         )
 
         return (
-            DataLoader(train_ds, RandomSampler(train_ds), batch_size=4),
-            DataLoader(val_ds, SequentialSampler(val_ds), batch_size=4),
+            DataLoader(train_ds, RandomSampler(train_ds), batch_size=BATCH_SIZE),
+            DataLoader(val_ds, SequentialSampler(val_ds), batch_size=BATCH_SIZE),
         )
 
     def initiate_model_trainer(self):
@@ -72,12 +77,12 @@ class ModelTrainer:
 
             for batch in train_dl:
                 ids, mask, ys, yi, yt = [b.to(self.device) for b in batch]
-                out = model(ids, mask)
+                s_logits, i_logits, t_logits = model(ids, mask)
 
                 loss = (
-                    loss_fn(out["sentiment"], ys)
-                    + loss_fn(out["intent"], yi)
-                    + loss_fn(out["topic"], yt)
+                    loss_fn(s_logits, ys)
+                    + loss_fn(i_logits, yi)
+                    + loss_fn(t_logits, yt)
                 )
 
                 loss.backward()
@@ -87,14 +92,13 @@ class ModelTrainer:
 
             os.makedirs(os.path.dirname(self.config.trained_model_file_path), exist_ok=True)
 
-            # 🔥 THE IMPORTANT LINE 🔥
             torch.save(
                 model.state_dict(),
-                self.config.trained_model_file_path.replace(".pkl", ".pt")
+                self.config.trained_model_file_path
             )
 
             return ModelTrainerArtifact(
-                trained_model_file_path=self.config.trained_model_file_path.replace(".pkl", ".pt"),
+                trained_model_file_path=self.config.trained_model_file_path,
                 train_metric_artifact={},
                 test_metric_artifact={},
                 train_predictions=[],

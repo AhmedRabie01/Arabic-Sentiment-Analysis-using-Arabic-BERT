@@ -99,7 +99,7 @@ class DataTransformationConfig:
 
         self.transformed_data_dir = os.path.join(base_dir, "transformed")
 
-        self.tokenizer_file_path = os.path.join(base_dir, "tokenizer.pkl")
+        self.tokenizer_file_path = os.path.join(base_dir, "tokenizer")
 
         self.X_train_ids_path = os.path.join(self.transformed_data_dir, "X_train_ids.npy")
         self.X_train_mask_path = os.path.join(self.transformed_data_dir, "X_train_mask.npy")
@@ -148,3 +148,4 @@ class ModelPusherConfig:
         self.saved_model_file_path = os.path.join(self.saved_model_dir, "model.pt")
         self.saved_meta_file_path = os.path.join(self.saved_model_dir, "meta.yaml")
         self.saved_tokenizer_dir = os.path.join(self.saved_model_dir, "tokenizer")
+        self.meta_template_path = training_pipeline.META_FILE_PATH
