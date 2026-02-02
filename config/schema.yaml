@@ -1,13 +1,24 @@
 columns:
-  
-  - review: string
-  - label: int
-    
+  - text
+  - sentiment
+  - intent
+  - topic
 
+required_columns:
+  - text
+  - sentiment
+  - intent
+  - topic
 
-numerical_columns:
-  - label
+text_column: text
 
-drop_columns:
-
-  
+label_columns:
+  sentiment:
+    type: categorical
+    required: true
+  intent:
+    type: categorical
+    required: true
+  topic:
+    type: categorical
+    required: true

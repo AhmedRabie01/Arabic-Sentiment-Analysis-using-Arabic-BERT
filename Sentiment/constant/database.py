@@ -1,1 +1,1 @@
-DATABASE_NAME = 'Resturant'
+DATABASE_NAME = 'sentiment_db'

@@ -1,57 +1,41 @@
-from Sentiment.constant.training_pipeline import SAVED_MODEL_DIR,MODEL_FILE_NAME
 import os
-import torch
+from Sentiment.constant.training_pipeline import SAVED_MODEL_DIR
 
 
 class ModelResolver:
+    """
+    Resolves paths for the production inference package.
+    Assumes a flat saved_models/ directory (NO versioning).
+    """
 
-    def __init__(self,model_dir=SAVED_MODEL_DIR):
-        try:
-            self.model_dir = model_dir
+    MODEL_FILE_NAME = "model.pkl"
+    TOKENIZER_FILE_NAME = "tokenizer.pkl"
+    META_FILE_NAME = "meta.yaml"
 
-        except Exception as e:
-            raise e
+    def __init__(self, model_dir: str = SAVED_MODEL_DIR):
+        self.model_dir = model_dir
 
-    def get_best_model_path(self,)->str:
-        try:
-            timestamps = list(map(int,os.listdir(self.model_dir)))
-            latest_timestamp = max(timestamps)
-            latest_model_path= os.path.join(self.model_dir,f"{latest_timestamp}",MODEL_FILE_NAME)
-            return latest_model_path
-        except Exception as e:
-            raise e
-        
-    def predict(self, model, dataloader):
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model.eval()
-        predictions = []
+    def get_model_path(self) -> str:
+        path = os.path.join(self.model_dir, self.MODEL_FILE_NAME)
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Model not found at {path}")
+        return path
 
-        for batch in dataloader:
-            input_ids = batch[0].to(device)
-            attention_mask = batch[1].to(device)
+    def get_tokenizer_path(self) -> str:
+        path = os.path.join(self.model_dir, self.TOKENIZER_FILE_NAME)
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Tokenizer not found at {path}")
+        return path
 
-            with torch.no_grad():
-                logits = model(input_ids, attention_mask)
-                probabilities = torch.softmax(logits, dim=1)
-                predicted_labels = torch.argmax(probabilities, dim=1)
-                predictions.extend(predicted_labels.cpu().tolist())
+    def get_meta_path(self) -> str:
+        path = os.path.join(self.model_dir, self.META_FILE_NAME)
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"meta.yaml not found at {path}")
+        return path
 
-        return predictions
-
-    def is_model_exists(self)->bool:
-        try:
-            if not os.path.exists(self.model_dir):
-                return False
-
-            timestamps = os.listdir(self.model_dir)
-            if len(timestamps)==0:
-                return False
-            
-            latest_model_path = self.get_best_model_path()
-
-            if not os.path.exists(latest_model_path):
-                return False
-
-            return True
-        except Exception as e:
-            raise e
+    def is_model_exists(self) -> bool:
+        return all([
+            os.path.exists(os.path.join(self.model_dir, self.MODEL_FILE_NAME)),
+            os.path.exists(os.path.join(self.model_dir, self.TOKENIZER_FILE_NAME)),
+            os.path.exists(os.path.join(self.model_dir, self.META_FILE_NAME)),
+        ])

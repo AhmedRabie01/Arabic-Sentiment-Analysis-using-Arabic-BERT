@@ -1,12 +1,12 @@
 from dataclasses import dataclass
+from typing import Any, Dict, Optional, List
 
-print("Importing RegressionMetricArtifact from artifact_entity.py")
 
 @dataclass
 class DataIngestionArtifact:
-    trained_file_path:str
-    test_file_path:str
-    
+    trained_file_path: str
+    test_file_path: str
+
 
 @dataclass
 class DataValidationArtifact:
@@ -18,48 +18,47 @@ class DataValidationArtifact:
     drift_report_file_path: str
 
 
-
 @dataclass
 class DataTransformationArtifact:
     tokenizer_file_path: str
-    label_encoder_file_path: str
-    transformed_train_file_path: str
-    transformed_train_attention_mask_path: str  # New field for attention masks
-    transformed_test_file_path: str
-    transformed_test_attention_mask_path: str  # New field for attention masks
-    transformed_train_labels_path: str
-    transformed_test_labels_path: str
-    
-@dataclass
-class ClassificationMetricArtifact:
-    f1_score: float
-    precision_score: float
-    recall_score: float
 
-@dataclass
-class RegressionMetricArtifact:
-    rmse: float
+    X_train_ids_path: str
+    X_train_mask_path: str
+
+    X_test_ids_path: str
+    X_test_mask_path: str
+
+    y_train_sentiment_path: str
+    y_train_intent_path: str
+    y_train_topic_path: str
+
+    y_test_sentiment_path: str
+    y_test_intent_path: str
+    y_test_topic_path: str
 
 
 @dataclass
 class ModelTrainerArtifact:
     trained_model_file_path: str
-    train_metric_artifact: float
-    test_metric_artifact: float
-    train_predictions: list  # Add train predictions field
-    val_predictions: list  # Add validation predictions field
+    train_metric_artifact: Dict[str, Any]
+    test_metric_artifact: Dict[str, Any]
+    train_predictions: List
+    val_predictions: List
 
 
 @dataclass
 class ModelEvaluationArtifact:
     is_model_accepted: bool
-    improved_accuracy: float
-    best_model_path: str
+    improved_accuracy: Optional[float]
+    best_model_path: Optional[str]
     trained_model_path: str
-    train_model_metric_artifact: ClassificationMetricArtifact
-    best_model_metric_artifact: ClassificationMetricArtifact
+    train_model_metric_artifact: Any
+    best_model_metric_artifact: Any
+
 
 @dataclass
 class ModelPusherArtifact:
-    saved_model_path:str
-    model_file_path:str
+    saved_model_dir: str
+    model_file_path: str
+    tokenizer_file_path: str
+    meta_file_path: str

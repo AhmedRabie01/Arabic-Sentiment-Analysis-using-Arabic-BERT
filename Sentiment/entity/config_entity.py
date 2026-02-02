@@ -15,34 +15,74 @@ class TrainingPipelineConfig:
 
 
 class DataIngestionConfig:
-        def __init__(self,training_pipeline_config:TrainingPipelineConfig):
-            self.data_ingestion_dir: str = os.path.join(
-                training_pipeline_config.artifact_dir, training_pipeline.DATA_INGESTION_DIR_NAME
-            )
-            self.feature_store_file_path: str = os.path.join(
-                self.data_ingestion_dir, training_pipeline.DATA_INGESTION_FEATURE_STORE_DIR, training_pipeline.FILE_NAME
-            )
-            self.training_file_path: str = os.path.join(
-                self.data_ingestion_dir, training_pipeline.DATA_INGESTION_INGESTED_DIR, training_pipeline.TRAIN_FILE_NAME
-            )
-            self.testing_file_path: str = os.path.join(
-                self.data_ingestion_dir, training_pipeline.DATA_INGESTION_INGESTED_DIR, training_pipeline.TEST_FILE_NAME
-            )
-            self.train_test_split_ratio: float = training_pipeline.DATA_INGESTION_TRAIN_TEST_SPLIT_RATION
-            self.collection_name: str = training_pipeline.DATA_INGESTION_COLLECTION_NAME
+    def __init__(self, training_pipeline_config: TrainingPipelineConfig):
+        self.data_ingestion_dir = os.path.join(
+            training_pipeline_config.artifact_dir,
+            training_pipeline.DATA_INGESTION_DIR_NAME,
+        )
 
+        self.feature_store_file_path = os.path.join(
+            self.data_ingestion_dir,
+            training_pipeline.DATA_INGESTION_FEATURE_STORE_DIR,
+            training_pipeline.FILE_NAME,
+        )
 
+        self.training_file_path = os.path.join(
+            self.data_ingestion_dir,
+            training_pipeline.DATA_INGESTION_INGESTED_DIR,
+            training_pipeline.TRAIN_FILE_NAME,
+        )
+
+        self.testing_file_path = os.path.join(
+            self.data_ingestion_dir,
+            training_pipeline.DATA_INGESTION_INGESTED_DIR,
+            training_pipeline.TEST_FILE_NAME,
+        )
+
+        self.train_test_split_ratio = (
+            training_pipeline.DATA_INGESTION_TRAIN_TEST_SPLIT_RATION
+        )
+
+        self.collection_name = training_pipeline.DATA_INGESTION_COLLECTION_NAME
 class DataValidationConfig:
 
+    def __init__(self, training_pipeline_config: TrainingPipelineConfig):
 
-    def __init__(self,training_pipeline_config:TrainingPipelineConfig):
-        self.data_validation_dir: str = os.path.join( training_pipeline_config.artifact_dir, training_pipeline.DATA_VALIDATION_DIR_NAME)
-        self.valid_data_dir: str = os.path.join(self.data_validation_dir, training_pipeline.DATA_VALIDATION_VALID_DIR)
-        self.invalid_data_dir: str = os.path.join(self.data_validation_dir, training_pipeline.DATA_VALIDATION_INVALID_DIR)
-        self.valid_train_file_path: str = os.path.join(self.valid_data_dir, training_pipeline.TRAIN_FILE_NAME)
-        self.valid_test_file_path: str = os.path.join(self.valid_data_dir, training_pipeline.TEST_FILE_NAME)
-        self.invalid_train_file_path: str = os.path.join(self.invalid_data_dir, training_pipeline.TRAIN_FILE_NAME)
-        self.invalid_test_file_path: str = os.path.join(self.invalid_data_dir, training_pipeline.TEST_FILE_NAME)
+        self.data_validation_dir: str = os.path.join(
+            training_pipeline_config.artifact_dir,
+            training_pipeline.DATA_VALIDATION_DIR_NAME,
+        )
+
+        self.valid_data_dir: str = os.path.join(
+            self.data_validation_dir,
+            training_pipeline.DATA_VALIDATION_VALID_DIR,
+        )
+
+        self.invalid_data_dir: str = os.path.join(
+            self.data_validation_dir,
+            training_pipeline.DATA_VALIDATION_INVALID_DIR,
+        )
+
+        self.valid_train_file_path: str = os.path.join(
+            self.valid_data_dir,
+            training_pipeline.TRAIN_FILE_NAME,
+        )
+
+        self.valid_test_file_path: str = os.path.join(
+            self.valid_data_dir,
+            training_pipeline.TEST_FILE_NAME,
+        )
+
+        self.invalid_train_file_path: str = os.path.join(
+            self.invalid_data_dir,
+            training_pipeline.TRAIN_FILE_NAME,
+        )
+
+        self.invalid_test_file_path: str = os.path.join(
+            self.invalid_data_dir,
+            training_pipeline.TEST_FILE_NAME,
+        )
+
         self.drift_report_file_path: str = os.path.join(
             self.data_validation_dir,
             training_pipeline.DATA_VALIDATION_DRIFT_REPORT_DIR,
@@ -50,54 +90,61 @@ class DataValidationConfig:
         )
 
 
-
 class DataTransformationConfig:
-    
-    def __init__(self,training_pipeline_config:TrainingPipelineConfig):
-        self.data_transformation_dir: str = os.path.join(training_pipeline_config.artifact_dir, training_pipeline.DATA_TRANSFORMATION_DIR_NAME)
-        self.transformed_train_file_path: str = os.path.join(self.data_transformation_dir, training_pipeline.DATA_TRANSFORMATION_TRANSFORMED_DATA_DIR, training_pipeline.TRAIN_FILE_NAME.replace("csv", "npy"))
-        self.transformed_test_file_path: str = os.path.join(self.data_transformation_dir, training_pipeline.DATA_TRANSFORMATION_TRANSFORMED_DATA_DIR, training_pipeline.TEST_FILE_NAME.replace("csv", "npy"))
-        self.transformed_object_file_path: str = os.path.join(self.data_transformation_dir, training_pipeline.DATA_TRANSFORMATION_TRANSFORMED_OBJECT_DIR, training_pipeline.PREPROCSSING_OBJECT_FILE_NAME)
-        self.label_encoder_file_path: str = os.path.join(self.data_transformation_dir, training_pipeline.DATA_TRANSFORMATION_TRANSFORMED_OBJECT_DIR, "label_encoder.pkl")
-        self.tokenizer_file_path: str = os.path.join(self.data_transformation_dir, training_pipeline.DATA_TRANSFORMATION_TRANSFORMED_OBJECT_DIR, "tokenizer.pkl")
-        self.transformed_train_labels_path: str = os.path.join(self.data_transformation_dir, training_pipeline.DATA_TRANSFORMATION_TRANSFORMED_DATA_DIR, "train_labels.npy")
-        self.transformed_test_labels_path: str = os.path.join(self.data_transformation_dir, training_pipeline.DATA_TRANSFORMATION_TRANSFORMED_DATA_DIR, "test_labels.npy")
-        self.transformed_train_attention_mask_path: str = os.path.join(self.data_transformation_dir, training_pipeline.DATA_TRANSFORMATION_TRANSFORMED_DATA_DIR, "train_attention_mask.npy")
-        self.transformed_test_attention_mask_path: str = os.path.join(self.data_transformation_dir, training_pipeline.DATA_TRANSFORMATION_TRANSFORMED_DATA_DIR, "test_attention_mask.npy")
+    def __init__(self, training_pipeline_config):
+        base_dir = os.path.join(
+            training_pipeline_config.artifact_dir,
+            training_pipeline.DATA_TRANSFORMATION_DIR_NAME,
+        )
 
+        self.transformed_data_dir = os.path.join(base_dir, "transformed")
+
+        self.tokenizer_file_path = os.path.join(base_dir, "tokenizer.pkl")
+
+        self.X_train_ids_path = os.path.join(self.transformed_data_dir, "X_train_ids.npy")
+        self.X_train_mask_path = os.path.join(self.transformed_data_dir, "X_train_mask.npy")
+
+        self.X_test_ids_path = os.path.join(self.transformed_data_dir, "X_test_ids.npy")
+        self.X_test_mask_path = os.path.join(self.transformed_data_dir, "X_test_mask.npy")
+
+        self.y_train_sentiment_path = os.path.join(self.transformed_data_dir, "y_train_sentiment.npy")
+        self.y_train_intent_path = os.path.join(self.transformed_data_dir, "y_train_intent.npy")
+        self.y_train_topic_path = os.path.join(self.transformed_data_dir, "y_train_topic.npy")
+
+        self.y_test_sentiment_path = os.path.join(self.transformed_data_dir, "y_test_sentiment.npy")
+        self.y_test_intent_path = os.path.join(self.transformed_data_dir, "y_test_intent.npy")
+        self.y_test_topic_path = os.path.join(self.transformed_data_dir, "y_test_topic.npy")
+# Sentiment/entity/config_entity.py
 
 class ModelTrainerConfig:
-    def __init__(self, training_pipeline_config: TrainingPipelineConfig):
-        self.model_trainer_dir: str = os.path.join(
-            training_pipeline_config.artifact_dir, "model_trainer"
+    def __init__(self, training_pipeline_config):
+        self.model_trainer_dir = os.path.join(
+            training_pipeline_config.artifact_dir,
+            training_pipeline.MODEL_TRAINER_DIR_NAME
         )
-        self.trained_model_file_path: str = os.path.join(
-            self.model_trainer_dir, "trained_model.pth"
-        )
-        self.model_trainer_accuracy: float = training_pipeline.MODEL_TRAINER_ACCURACY
-        self.overfitting_underfitting_threshold: float = training_pipeline.MODEL_TRAINER_OVER_FIITING_UNDER_FITTING_THRESHOLD
 
+        self.trained_model_file_path = os.path.join(
+            self.model_trainer_dir,
+            training_pipeline.MODEL_TRAINER_TRAINED_MODEL_NAME
+        )
 
 
 class ModelEvaluationConfig:
-
-    def __init__(self,training_pipeline_config:TrainingPipelineConfig):
-        self.model_evaluation_dir: str = os.path.join(
-            training_pipeline_config.artifact_dir, training_pipeline.MODEL_EVALUATION_DIR_NAME
+    def __init__(self, training_pipeline_config):
+        self.model_evaluation_dir = os.path.join(
+            training_pipeline_config.artifact_dir,
+            training_pipeline.MODEL_EVALUATION_DIR_NAME
         )
-        self.report_file_path = os.path.join(self.model_evaluation_dir,training_pipeline.MODEL_EVALUATION_REPORT_NAME)
+        self.report_file_path = os.path.join(
+            self.model_evaluation_dir,
+            training_pipeline.MODEL_EVALUATION_REPORT_NAME
+        )
         self.change_threshold = training_pipeline.MODEL_EVALUATION_CHANGED_THRESHOLD_SCORE
 
 
 class ModelPusherConfig:
-
-    def __init__(self,training_pipeline_config:TrainingPipelineConfig):
-        self.model_evaluation_dir: str = os.path.join(
-            training_pipeline_config.artifact_dir, training_pipeline.MODEL_PUSHER_DIR_NAME
-        )
-        self.model_file_path = os.path.join(self.model_evaluation_dir,training_pipeline.MODEL_FILE_NAME)
-        timestamp = round(datetime.now().timestamp())
-        self.saved_model_path=os.path.join(
-            training_pipeline.SAVED_MODEL_DIR,
-            f"{timestamp}",
-            training_pipeline.MODEL_FILE_NAME)
+    def __init__(self, training_pipeline_config):
+        self.saved_model_dir = training_pipeline.MODEL_PUSHER_SAVED_MODEL_DIR
+        self.saved_model_file_path = os.path.join(self.saved_model_dir, "model.pt")
+        self.saved_meta_file_path = os.path.join(self.saved_model_dir, "meta.yaml")
+        self.saved_tokenizer_dir = os.path.join(self.saved_model_dir, "tokenizer")
