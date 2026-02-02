@@ -1,107 +1,140 @@
 import os
+import sys
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
-from transformers import AutoTokenizer
 import torch
-from torch.utils.data import TensorDataset, DataLoader, RandomSampler
-import sys
-from Sentiment.constant.training_pipeline import (
-    TARGET_COLUMN, MODEL_NAME, MAX_LEN, BATCH_SIZE, FEATURE_COLUMN
+
+from transformers import AutoTokenizer
+
+from Sentiment.entity.artifact_entity import (
+    DataTransformationArtifact,
+    DataValidationArtifact,
 )
-from Sentiment.entity.artifact_entity import DataTransformationArtifact, DataValidationArtifact
 from Sentiment.entity.config_entity import DataTransformationConfig
 from Sentiment.exception import SentimentException
 from Sentiment.logger import logging
 from Sentiment.utils.main_utils import save_numpy_array_data, save_object
-import emoji
-import re
-from nltk.tokenize import word_tokenize
-import nltk
-nltk.data.path.append('C:\\Users\\ahmed\\AppData\\Roaming\\nltk_data')  # Update if required
-nltk.download('punkt')
-nltk.download('punkt_tab')
-
+from Sentiment.constant.training_pipeline import SCHEMA_FILE_PATH
+from Sentiment.utils.main_utils import read_yaml_file
 
 
 class DataTransformation:
-    def __init__(self, data_validation_artifact: DataValidationArtifact, data_transformation_config: DataTransformationConfig):
+    """
+    Multitask NLP Data Transformation:
+    - Shared tokenizer
+    - Shared text encoding
+    - Separate label tensors
+    """
+
+    def __init__(
+        self,
+        data_validation_artifact: DataValidationArtifact,
+        data_transformation_config: DataTransformationConfig,
+    ):
         try:
-            self.data_validation_artifact = data_validation_artifact
-            self.data_transformation_config = data_transformation_config
-            self.label_encoder = LabelEncoder()
-            self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-            self.tokenizer.model_max_length = MAX_LEN
-            if self.tokenizer.pad_token is None:
-                self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+            self.validation_artifact = data_validation_artifact
+            self.config = data_transformation_config
+            self.schema = read_yaml_file(SCHEMA_FILE_PATH)
+
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                "jhu-clsp/mmBERT-base",
+                use_fast=True,
+            )
+
         except Exception as e:
             raise SentimentException(e, sys)
 
     @staticmethod
-    def read_data(file_path) -> pd.DataFrame:
-        try:
-            return pd.read_csv(file_path)
-        except Exception as e:
-            raise SentimentException(f"Error reading data from {file_path}. Exception: {str(e)}", sys)
+    def _read_csv(path: str) -> pd.DataFrame:
+        return pd.read_csv(path)
+
+    def _encode_texts(self, texts):
+        encoded = self.tokenizer(
+            texts,
+            padding="max_length",
+            truncation=True,
+            max_length=512,
+            return_attention_mask=True,
+            return_tensors="np",
+        )
+        return encoded["input_ids"], encoded["attention_mask"]
 
     @staticmethod
-    def preprocess_text(text):
-        try:
-            text = text.lower()
-            text = re.sub(r'http\S+|www\S+', '', text)
-            text = re.sub(r'\@\w+|\#', '', text)
-            text = re.sub(r'[^\w\s]', '', text)
-            text = emoji.demojize(text)
-            return ' '.join(word_tokenize(text))
-        except Exception as e:
-            raise SentimentException(f"Error in text preprocessing. Text: {text[:30]}... Exception: {str(e)}", sys)
-
-    def tokenize_texts(self, texts):
-        try:
-            preprocessed_texts = [self.preprocess_text(text) for text in texts]
-            batch_encoding = self.tokenizer.batch_encode_plus(
-                preprocessed_texts,
-                add_special_tokens=True,
-                truncation=True,
-                padding='max_length',
-                max_length=MAX_LEN,
-                return_tensors='pt'
-            )
-            return batch_encoding.input_ids, batch_encoding.attention_mask
-        except Exception as e:
-            raise SentimentException(f"Error tokenizing texts. Exception: {str(e)}", sys)
+    def _encode_labels(series: pd.Series):
+        """
+        Encode categorical labels to integer indices.
+        Mapping is derived from sorted unique values.
+        """
+        classes = sorted(series.unique())
+        mapping = {label: idx for idx, label in enumerate(classes)}
+        encoded = series.map(mapping).values
+        return encoded, mapping
 
     def initiate_data_transformation(self) -> DataTransformationArtifact:
         try:
-            train_df = self.read_data(self.data_validation_artifact.valid_train_file_path)
-            test_df = self.read_data(self.data_validation_artifact.valid_test_file_path)
+            logging.info("Starting Data Transformation")
 
-            train_texts, train_labels = train_df[FEATURE_COLUMN].tolist(), train_df[TARGET_COLUMN].tolist()
-            test_texts, test_labels = test_df[FEATURE_COLUMN].tolist(), test_df[TARGET_COLUMN].tolist()
+            train_df = self._read_csv(self.validation_artifact.valid_train_file_path)
+            test_df = self._read_csv(self.validation_artifact.valid_test_file_path)
 
-            self.label_encoder.fit(train_labels)
-            train_input_ids, train_attention_masks = self.tokenize_texts(train_texts)
-            test_input_ids, test_attention_masks = self.tokenize_texts(test_texts)
+            text_col = self.schema["text_column"]
 
-            save_object(self.data_transformation_config.label_encoder_file_path, self.label_encoder)
-            save_object(self.data_transformation_config.tokenizer_file_path, self.tokenizer)
-            save_numpy_array_data(self.data_transformation_config.transformed_train_file_path, train_input_ids)
-            save_numpy_array_data(self.data_transformation_config.transformed_train_attention_mask_path, train_attention_masks)
-            save_numpy_array_data(self.data_transformation_config.transformed_test_file_path, test_input_ids)
-            save_numpy_array_data(self.data_transformation_config.transformed_test_attention_mask_path, test_attention_masks)
-            save_numpy_array_data(self.data_transformation_config.transformed_train_labels_path, torch.tensor(self.label_encoder.transform(train_labels)))
-            save_numpy_array_data(self.data_transformation_config.transformed_test_labels_path, torch.tensor(self.label_encoder.transform(test_labels)))
+            # -------------------------
+            # Encode text (shared)
+            # -------------------------
+            X_train_ids, X_train_mask = self._encode_texts(train_df[text_col].tolist())
+            X_test_ids, X_test_mask = self._encode_texts(test_df[text_col].tolist())
+
+            # -------------------------
+            # Encode labels (separately)
+            # -------------------------
+            y_train_sentiment, sentiment_map = self._encode_labels(train_df["sentiment"])
+            y_train_intent, intent_map = self._encode_labels(train_df["intent"])
+            y_train_topic, topic_map = self._encode_labels(train_df["topic"])
+
+            y_test_sentiment = test_df["sentiment"].map(sentiment_map).values
+            y_test_intent = test_df["intent"].map(intent_map).values
+            y_test_topic = test_df["topic"].map(topic_map).values
+
+            # -------------------------
+            # Save artifacts
+            # -------------------------
+            os.makedirs(self.config.transformed_data_dir, exist_ok=True)
+
+            save_object(self.config.tokenizer_file_path, self.tokenizer)
+
+            save_numpy_array_data(self.config.X_train_ids_path, X_train_ids)
+            save_numpy_array_data(self.config.X_train_mask_path, X_train_mask)
+            save_numpy_array_data(self.config.X_test_ids_path, X_test_ids)
+            save_numpy_array_data(self.config.X_test_mask_path, X_test_mask)
+
+            save_numpy_array_data(self.config.y_train_sentiment_path, y_train_sentiment)
+            save_numpy_array_data(self.config.y_train_intent_path, y_train_intent)
+            save_numpy_array_data(self.config.y_train_topic_path, y_train_topic)
+
+            save_numpy_array_data(self.config.y_test_sentiment_path, y_test_sentiment)
+            save_numpy_array_data(self.config.y_test_intent_path, y_test_intent)
+            save_numpy_array_data(self.config.y_test_topic_path, y_test_topic)
+
+            logging.info("Data Transformation completed successfully")
 
             return DataTransformationArtifact(
-                tokenizer_file_path=self.data_transformation_config.tokenizer_file_path,
-                label_encoder_file_path=self.data_transformation_config.label_encoder_file_path,
-                transformed_train_file_path=self.data_transformation_config.transformed_train_file_path,
-                transformed_train_attention_mask_path=self.data_transformation_config.transformed_train_attention_mask_path,
-                transformed_test_file_path=self.data_transformation_config.transformed_test_file_path,
-                transformed_test_attention_mask_path=self.data_transformation_config.transformed_test_attention_mask_path,
-                transformed_train_labels_path=self.data_transformation_config.transformed_train_labels_path,
-                transformed_test_labels_path=self.data_transformation_config.transformed_test_labels_path
+                tokenizer_file_path=self.config.tokenizer_file_path,
+
+                X_train_ids_path=self.config.X_train_ids_path,
+                X_train_mask_path=self.config.X_train_mask_path,
+
+                X_test_ids_path=self.config.X_test_ids_path,
+                X_test_mask_path=self.config.X_test_mask_path,
+
+                y_train_sentiment_path=self.config.y_train_sentiment_path,
+                y_train_intent_path=self.config.y_train_intent_path,
+                y_train_topic_path=self.config.y_train_topic_path,
+
+                y_test_sentiment_path=self.config.y_test_sentiment_path,
+                y_test_intent_path=self.config.y_test_intent_path,
+                y_test_topic_path=self.config.y_test_topic_path,
             )
+
         except Exception as e:
-            raise SentimentException(f"Error during data transformation initiation. Exception: {str(e)}", sys)
+            raise SentimentException(e, sys)
