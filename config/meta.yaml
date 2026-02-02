@@ -1,0 +1,25 @@
+model_name: jhu-clsp/mmBERT-base
+task: multitask-text-classification
+language: ar
+max_len: 256
+
+tasks:
+  sentiment:
+    labels:
+      0: negative
+      1: neutral
+      2: positive
+  intent:
+    labels:
+      0: Inquiry
+      1: Complaint
+      2: Request
+  topic:
+    labels:
+      0: availability
+      1: delivery
+      2: staff_behavior
+      3: price
+      4: insurance
+      5: waiting_time
+      6: prescription

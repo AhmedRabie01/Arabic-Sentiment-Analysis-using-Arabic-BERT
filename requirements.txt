@@ -1,24 +1,50 @@
-transformers==4.47.0
-transformers[sentencepiece]
-datasets==3.1.0
-sacrebleu==2.4.3
-rouge_score==0.1.2
-py7zr==0.22.0
-pandas==2.2.3
+# =========================================================
+# Core ML / NLP (GTX 1050 SAFE – Windows)
+# =========================================================
+torch==2.1.2+cu118
+torchvision==0.16.2+cu118
+torchaudio==2.1.2+cu118
+--extra-index-url https://download.pytorch.org/whl/cu118
+
+# 🚨 Use modernbert-aware Transformers (4.48 adds config support)
+transformers==4.48.0
+safetensors==0.4.5
+accelerate==0.29.3
+
+# =========================================================
+# Data / ML
+# =========================================================
+numpy==1.26.4
+pandas==2.1.4
+scikit-learn==1.4.2
 nltk==3.9.1
-tqdm==4.67.1
+
+# =========================================================
+# API / Web
+# =========================================================
+fastapi==0.110.3
+uvicorn[standard]==0.27.1
+gunicorn==21.2.0
+Jinja2==3.1.2
+python-multipart==0.0.22
+
+# =========================================================
+# Utilities
+# =========================================================
 PyYAML==6.0.2
-matplotlib==3.9.3
-torch==2.5.1
-notebook==7.3.1
-boto3==1.35.76
-mypy-boto3-s3==1.35.76
+tqdm==4.67.1
+dill==0.3.8
 python-box==6.0.2
 ensure==1.0.2
-fastapi==0.78.0
-uvicorn==0.18.3
-Jinja2==3.1.2
-dill==0.3.8
-scikit-learn==1.5.2
+
+# =========================================================
+# Database / Cloud
+# =========================================================
 pymongo==4.10.1
+boto3==1.35.76
+mypy-boto3-s3==1.35.76
+
+# =========================================================
+# Project package
+# =========================================================
 -e .
