@@ -102,10 +102,13 @@ A strict separation is enforced between **training** and **inference** to ensure
           │ saved_models/ ONLY   │
           └─────────┬────────────┘
                      ▼
-┌──────────────────────────────────────────┐
-│          FastAPI Inference API            │
-│   Loads ONLY saved_models artifacts       │
-└──────────────────────────────────────────┘
+         ┌─────────────────────────┐
+         │  FastAPI Inference API  │
+         │ Loads ONLY saved_model  │         
+         │       artifacts         │
+         └─────────────────────────┘
+
+
 ### Multitask Learning Design
 - Shared **Transformer encoder**
 - Independent task‑specific classification heads

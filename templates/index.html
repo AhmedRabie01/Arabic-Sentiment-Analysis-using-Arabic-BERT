@@ -40,8 +40,19 @@
     .hero {
       display: grid;
       grid-template-columns: 1.2fr 1fr;
+      grid-template-rows: auto 1fr;
       gap: 28px;
-      align-items: center;
+      align-items: start;
+    }
+
+    .hero-head {
+      grid-column: 1 / 2;
+      grid-row: 1;
+    }
+
+    .hero-card {
+      grid-column: 1 / 2;
+      grid-row: 2;
     }
 
     .title {
@@ -199,6 +210,9 @@
       min-height: 260px;
       position: relative;
       overflow: hidden;
+      grid-column: 2 / 3;
+      grid-row: 2;
+      align-self: center;
     }
 
     .aside-card::after {
@@ -235,7 +249,13 @@
     }
 
     @media (max-width: 900px) {
-      .hero { grid-template-columns: 1fr; }
+      .hero {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+      }
+      .hero-head { grid-column: 1; grid-row: 1; }
+      .hero-card { grid-column: 1; grid-row: 2; }
+      .aside-card { grid-column: 1; grid-row: 3; }
       .result-grid { grid-template-columns: 1fr; }
     }
   </style>
@@ -243,11 +263,13 @@
 <body>
   <div class="page">
     <section class="hero">
-      <div>
+      <div class="hero-head">
         <div class="badge">Arabic Multitask NLP</div>
         <h1 class="title">Sentiment, intent, and topic in one pass.</h1>
         <p class="subtitle">Analyze Arabic text with a multitask transformer. Get sentiment, intent, and topic predictions with confidence scores.</p>
+      </div>
 
+      <div class="hero-card">
         <div class="card">
           <form id="singleForm" class="input-wrap">
             <label for="textInput"><strong>Enter Arabic text</strong></label>
