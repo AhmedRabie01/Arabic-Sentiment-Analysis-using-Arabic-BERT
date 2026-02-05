@@ -8,6 +8,14 @@ Unlike traditional sentiment‑only solutions, this system performs **joint mult
 
 ---
 
+## Demo
+
+- Live app: https://huggingface.co/spaces/AhmedRabie01/Arabic-Multitask-Sentiment
+- Model artifacts: https://huggingface.co/AhmedRabie01/arabic-multitask-model
+- Data: not publicly shared (privacy constraints)
+
+---
+
 ## 📌 Project Overview
 
 This is a **full end‑to‑end machine learning system**, not just a trained model.
@@ -166,6 +174,14 @@ Designed with **clarity, traceability, and production stability** in mind.
     "topic": 90.1
   }
 }
+```
+
+### Quick Test
+
+```bash
+curl -X POST http://localhost:8080/predict \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "text=أحتاج استفسار عن توافر الدواء"
 ```
 
 ---
