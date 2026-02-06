@@ -58,9 +58,13 @@ A strict separation is enforced between **training** and **inference** to ensure
 
 ## 🖼 Project Screenshots
 
-![Web Application Screenshot](https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/Screenshot_12-12-2024_21316_127.0.0.1.jpeg)
+![Web Application Screenshot]([https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/Screenshot_12-12-2024_21316_127.0.0.1.jpeg](https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/Sentiment_screen_0.png))
 
-![Web Application Screenshot](https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/Screenshot_12-12-2024_21233_127.0.0.1.jpeg)
+![Web Application Screenshot]([https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/Screenshot_12-12-2024_21233_127.0.0.1.jpeg](https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/Sentiment_screen_1.png))
+
+![Web Application Screenshot]([https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/Screenshot_12-12-2024_21233_127.0.0.1.jpeg](https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/Sentiment_screen_2.png))
+
+![Web Application Screenshot]([https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/Screenshot_12-12-2024_21233_127.0.0.1.jpeg](https://github.com/AhmedRabie01/Arabic-Sentiment-Analysis-using-Arabic-BERT/blob/main/photo/Sentiment_screen_4.png))
 
 ---
 
