@@ -1,0 +1,15 @@
+services:
+  arabic-nlp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: arabic-nlp:latest
+    container_name: arabic-nlp
+    ports:
+      - "8080:8080"
+    environment:
+      SENTIMENT_FORCE_CPU: "1"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./saved_models:/app/saved_models:ro
+    restart: unless-stopped

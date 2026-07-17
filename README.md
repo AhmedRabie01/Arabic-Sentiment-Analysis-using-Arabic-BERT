@@ -14,6 +14,31 @@ Unlike traditional sentiment‑only solutions, this system performs **joint mult
 - Model artifacts: https://huggingface.co/AhmedRabie01/arabic-multitask-model
 - Data: not publicly shared (privacy constraints)
 
+### Video Walkthroughs
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://drive.google.com/file/d/1iKqBzoHve0qc_h80-0U9iE6l6pHGrTyJ/view?usp=drive_link">
+        <img src="photo/Sentiment_screen_0.png" alt="Single sentence prediction demo" width="100%" height="210">
+      </a>
+      <br>
+      <strong>Single Sentence Prediction</strong>
+      <br>
+      Analyze one Arabic sentence and return sentiment, intent, topic, and confidence scores.
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://drive.google.com/file/d/1G7c1Yop_INXycqARekrv7YfqRBgcXwMd/view?usp=drive_link">
+        <img src="photo/Sentiment_screen_3.png" alt="Batch CSV prediction demo" width="100%" height="210">
+      </a>
+      <br>
+      <strong>Batch CSV Prediction</strong>
+      <br>
+      Upload a CSV of Arabic sentences and review grouped predictions with confidence values.
+    </td>
+  </tr>
+</table>
+
 ---
 
 ## 📌 Project Overview
@@ -43,7 +68,7 @@ A strict separation is enforced between **training** and **inference** to ensure
 ### 🔹 Intent Detection
 - `Inquiry`
 - `Complaint`
-- `Request`
+- `Praise`
 
 ### 🔹 Topic Classification
 - `availability`
@@ -51,18 +76,6 @@ A strict separation is enforced between **training** and **inference** to ensure
 - `staff_behavior`
 - `price`
 - `insurance`
-- `waiting_time`
-- `prescription`
-
----
-
-## 🖼 Project Screenshots
-
-![Web Application Screenshot](photo/Sentiment_screen_0.png)
-![Web Application Screenshot](photo/Sentiment_screen_1.png)
-![Web Application Screenshot](photo/Sentiment_screen_3.png)
-![Web Application Screenshot](photo/Sentiment_screen_4.png)
----
 
 ## 🏗 System Architecture (High‑Level)
 
@@ -229,6 +242,16 @@ docker build -t arabic-nlp .
 ### Run Container
 ```bash
 docker run -p 8080:8080 arabic-nlp
+```
+
+### Run with Docker Compose
+```bash
+docker compose up --build
+```
+
+Stop the container:
+```bash
+docker compose down
 ```
 
 ---

@@ -1,0 +1,17 @@
+.git
+.github
+.vscode
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+ENV/
+artifact/
+data/
+saved_models/
+research/data/
+*.log
